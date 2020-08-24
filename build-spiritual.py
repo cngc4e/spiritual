@@ -19,7 +19,7 @@ def thisShouldBeAnonymous(match):
     # fuck python
     return getContentFromFile(match.group(1))
                        
-reg = re.compile(r'@include (\S+)', re.S)
+reg = re.compile(r'@(?:include|spinclude) (\S+)', re.S)
 def expand(content):
     if '@include' in content:
         content = reg.sub(thisShouldBeAnonymous, content)
@@ -47,6 +47,9 @@ for path in files:
             fw.write(wrt)
 
 template = expand(template)
+
+regremove = re.compile(r'@(\S+)include (\S+)', re.S)
+template = regremove.sub("", template)
 
 with open("spiritual.lua", "w", encoding="utf-8") as f:
     f.write(template)

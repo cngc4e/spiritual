@@ -124,14 +124,19 @@ end
 @include helpers/map_sched.lua
 @include helpers/tfmcmd.lua
 
--- init commands
-@include module/commands.lua
+@include module/common/Commands.lua
+@include module/common/Keys.lua
+@include module/common/Events.lua
 
-@include module/keys.lua
+@spinclude module/spiritual/SpCommands.lua
+@spinclude module/spiritual/SpKeys.lua
+@spinclude module/spiritual/SpPlayer.lua
+@spinclude module/spiritual/SpEvents.lua
 
-@include module/SpPlayer.lua
-
-@include module/SpEvents.lua
+@divinclude module/divinity/DivCommands.lua
+@divinclude module/divinity/DivKeys.lua
+@divinclude module/divinity/DivPlayer.lua
+@divinclude module/divinity/DivEvents.lua
 
 callbacks = {}
 
@@ -158,7 +163,7 @@ end
 
 function eventLoop(elapsed, remaining)
     map_sched.run()
-    SpEvents.Loop(elapsed, remaining)  
+    Events.doEvent("Loop", elapsed, remaining)  
 end
 
 function eventMouse(pn, x, y)
@@ -179,22 +184,34 @@ function eventNewGame()
         tfm.exec.setPlayerScore(name, -5)
     end
 
-    SpEvents.NewGame()
+    Events.doEvent("NewGame")
 end
 
 function eventNewPlayer(pn)
-    SpEvents.NewPlayer(pn)
     pL.dead:add(pn)
+    for key, a in pairs(keys) do
+        if a.trigger == DOWN_ONLY then
+            system.bindKeyboard(pn, key, true)
+        elseif a.trigger == UP_ONLY then
+            system.bindKeyboard(pn, key, false)
+        elseif a.trigger == DOWN_UP then
+            system.bindKeyboard(pn, key, true)
+            system.bindKeyboard(pn, key, false)
+        end
+    end
+    Events.doEvent("NewPlayer", pn)
 end
 
 function eventPlayerDied(pn)
     pL.alive:remove(pn)
     pL.dead:add(pn)
+    Events.doEvent("PlayerDied", pn)
 end
 
 function eventPlayerWon(pn, elapsed)
     pL.alive:remove(pn)
     pL.dead:add(pn)
+    Events.doEvent("PlayerWon", pn)
 end
 
 function eventPlayerLeft(pn)
@@ -202,7 +219,7 @@ function eventPlayerLeft(pn)
     if pL.spectator[pn] then
         pL.spectator:remove(pn)
     end
-    SpEvents.PlayerLeft(pn)
+    Events.doEvent("PlayerLeft", pn)
 end
 
 function eventPlayerRespawn(pn)
@@ -211,7 +228,7 @@ function eventPlayerRespawn(pn)
 end
 
 function eventSummoningEnd(pn, type, xPos, yPos, angle, desc)
-    SpEvents.SummoningEnd(pn, type, xPos, yPos, angle, desc)
+    Events.doEvent("SummoningEnd", pn, type, xPos, yPos, angle, desc)
 end
 
 function eventTextAreaCallback(id, pn, cb)
