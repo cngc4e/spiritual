@@ -4,6 +4,7 @@ do
     -- XML Parser by Leafileaf
     -- Modified version
     XMLNode = {}
+    XMLNode.__index = XMLNode
     XMLNode.addchild = function( o , c )
         o.children = o.children + 1
         o.child[o.children] = c
@@ -42,7 +43,7 @@ do
         return str
     end
     XMLNode.new = function( c , n , p )
-        local o = setmetatable( {} , {__index = XMLNode} )
+        local o = setmetatable( {} , XMLNode )
         o.name = n
         o.attrib = {}
         o.parent = p or o
