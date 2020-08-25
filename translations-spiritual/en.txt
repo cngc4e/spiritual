@@ -1,2 +1,18 @@
 # General/common
 close = [[Close]]
+
+# Chat message
+welcome_message = [[
+<N>&gt; <J>Welcome to the <CH>#Spiritual <J>minigame! Press H or type !help for more information.
+<ROSE>Map Submissions: %s
+<ROSE>#Spiritual Community Discord: %s
+<T>We would like your feedback on how we could improve the minigame. Send your suggestions over at our Discord server!
+]]
+divine_mode_forbidden = [[<R>Divine mode is forbidden!]]
+
+# Map info
+map_info = [[<ROSE>• [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s]]
+shaman_info = [[<N>Shaman: <VP>%s <N>- Level: <J>%s]]
+windgrav_info = [[<N>Wind: <J>%s <G>| <N>Gravity: <J>%s]]
+portals = [[Portals]]
+no_b = [[No-B]]

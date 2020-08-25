@@ -50,7 +50,7 @@ local function int_mapcode(code)
     end
 end
 
-local function tl(kname, pn)
+local function tl(pn, kname)
     local pref_lang = players[pn] and players[pn].lang or "en"
     local lang = translations[pref_lang] and pref_lang or "en"
     if translations[lang][kname] then

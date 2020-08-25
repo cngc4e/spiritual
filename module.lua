@@ -1,5 +1,6 @@
 @include libs/PairTable.lua
 @include libs/bitset.lua
+@include libs/XMLParse.lua
 
 -- Module variables
 local translations = {}
@@ -54,12 +55,14 @@ local keys, callbacks
 @spinclude module/spiritual/SpCommands.lua
 @spinclude module/spiritual/SpKeys.lua
 @spinclude module/spiritual/SpPlayer.lua
+@spinclude module/spiritual/SpRound.lua
 @spinclude module/spiritual/SpEvents.lua
 
 @divinclude module/divinity/DivCommon.lua
 @divinclude module/divinity/DivCommands.lua
 @divinclude module/divinity/DivKeys.lua
 @divinclude module/divinity/DivPlayer.lua
+@divinclude module/divinity/DivRound.lua
 @divinclude module/divinity/DivEvents.lua
 
 callbacks = {}
