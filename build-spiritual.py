@@ -31,9 +31,9 @@ def expand(content):
         return content.strip()
 
 # build translations
-shutil.rmtree("translations-gen", ignore_errors=True)
-os.mkdir("translations-gen")
-files = glob.glob("translations/*.txt")
+shutil.rmtree("translations-gen-spiritual", ignore_errors=True)
+os.mkdir("translations-gen-spiritual")
+files = glob.glob("translations-spiritual/*.txt")
 for path in files:
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -46,7 +46,7 @@ for path in files:
             pairs.append("\t{}=\"{}\"".format(key, val))
         wrt += ",\n".join(pairs)
         wrt += "\n}"
-        with open("translations-gen/{}.lua".format(lang), "w", encoding="utf-8") as fw:
+        with open("translations-gen-spiritual/{}.lua".format(lang), "w", encoding="utf-8") as fw:
             fw.write(wrt)
 
 template = expand(template)

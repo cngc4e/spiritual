@@ -4,7 +4,7 @@ import re
 
 translations = {}
 BASE_LANG = "en"
-files = glob.glob("translations/*.txt")
+files = glob.glob("translations-spiritual/*.txt")
 for path in files:
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -17,7 +17,7 @@ for path in files:
             pairs.update({key: val})
 
         translations.update({lang: pairs})
-base_stream = open("translations/"+BASE_LANG+".txt", "r", encoding="utf-8")
+base_stream = open("translations-spiritual/"+BASE_LANG+".txt", "r", encoding="utf-8")
 base_lines = base_stream.read().splitlines()
 for lang in translations:
     if lang == BASE_LANG:

@@ -5,7 +5,8 @@
 local translations = {}
 local players = {}  -- Players[]
 
-@include translations-gen/*.lua
+@spinclude translations-gen-spiritual/*.lua
+@divinclude translations-gen-divinity/*.lua
 
 -- Cached variable lookups
 local room = tfm.get.room
@@ -49,11 +50,13 @@ local keys, callbacks
 @include module/Keys.lua
 @include module/Events.lua
 
+@spinclude module/spiritual/SpCommon.lua
 @spinclude module/spiritual/SpCommands.lua
 @spinclude module/spiritual/SpKeys.lua
 @spinclude module/spiritual/SpPlayer.lua
 @spinclude module/spiritual/SpEvents.lua
 
+@divinclude module/divinity/DivCommon.lua
 @divinclude module/divinity/DivCommands.lua
 @divinclude module/divinity/DivKeys.lua
 @divinclude module/divinity/DivPlayer.lua
