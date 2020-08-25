@@ -8,7 +8,13 @@ do
 
     SpRound.parseXMLObj = function(self, xmlobj)
         IRound.parseXMLObj(self, xmlobj)
-
+        local xo_prop = xmlobj:traverse_first("P").attrib
+        if xo_prop.P then
+            self.portals = true
+        end
+        if xo_prop.NOB then
+            self.no_b = true
+        end
     end
 
     SpRound.onNew = function(self)

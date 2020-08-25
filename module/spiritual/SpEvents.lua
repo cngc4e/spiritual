@@ -17,7 +17,13 @@ do
                 player:tlFmt("shaman_info", "Unknown#0000", 999)
             }
             local propstr = player:tlFmt("windgrav_info", ThisRound.wind, ThisRound.gravity)
-            local props = { player:tlFmt("portals"), player:tlFmt("no_b") }
+            local props = { }
+            if ThisRound.portals then
+                props[#props+1] = player:tlFmt("portals")
+            end
+            if ThisRound.no_b then
+                props[#props+1] = player:tlFmt("no_b")
+            end
             if #props > 0 then
                 propstr = propstr .. " <G>| <VP>" .. table.concat(props, " <G>| <VP>")
             end
