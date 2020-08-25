@@ -1,5 +1,6 @@
 @include libs/PairTable.lua
 @include libs/bitset.lua
+@include libs/db2.lua
 @include libs/XMLParse.lua
 
 -- Module variables
@@ -46,16 +47,18 @@ local keys, callbacks
 ----- HELPERS
 @include helpers/map_sched.lua
 @include helpers/tfmcmd.lua
+@include helpers/MDHelper.lua
 
 @include module/Commands.lua
 @include module/Keys.lua
 @include module/Events.lua
 
 @spinclude module/spiritual/SpCommon.lua
+@spinclude module/spiritual/SpRound.lua
+@spinclude module/spiritual/SpPlayer.lua
+@spinclude module/spiritual/SpModuleData.lua
 @spinclude module/spiritual/SpCommands.lua
 @spinclude module/spiritual/SpKeys.lua
-@spinclude module/spiritual/SpPlayer.lua
-@spinclude module/spiritual/SpRound.lua
 @spinclude module/spiritual/SpEvents.lua
 
 @divinclude module/divinity/DivCommon.lua
@@ -171,12 +174,20 @@ function eventTextAreaCallback(id, pn, cb)
     end
 end
 
+function eventFileLoaded(file, data)
+    Events.doEvent("FileLoaded", file, data)
+end
+
+function eventFileSaved(file)
+    Events.doEvent("FileSaved", file)
+end
+
 local init = function()
     print("Module is starting...")
-    for _,v in ipairs({'AllShamanSkills','AutoNewGame','AutoScore','AutoTimeLeft','PhysicalConsumables'}) do
-        tfm.exec['disable'..v](true)
-    end
-    system.disableChatCommandDisplay(nil,true)
+
+    @spinclude module/spiritual/init_ext.lua
+    @divinclude module/divinity/init_ext.lua
+
     for name in pairs(room.playerList) do eventNewPlayer(name) end
     tfm.exec.setRoomMaxPlayers(DEFAULT_MAX_PLAYERS)
     tfm.exec.setRoomPassword("")

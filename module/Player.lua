@@ -8,6 +8,10 @@ do
         return tfm.exec.chatMessage(str, self.name)
     end
 
+    Player.chatMsgFmt = function(self, str, ...)
+        return tfm.exec.chatMessage(string.format(str, ...), self.name)
+    end
+
     Player.tlFmt = function(self, kname, ...)
         local str = translations[self.lang][kname]
         return string.format(str, ...)

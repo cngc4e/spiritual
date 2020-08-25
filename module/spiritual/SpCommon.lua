@@ -9,4 +9,5 @@ do
     SpCommon.PHASE_READY = 1
     SpCommon.PHASE_TIMESUP = 2
 
+    SpCommon.MODULE_ID = 20
 end
