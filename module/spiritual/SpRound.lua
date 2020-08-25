@@ -2,8 +2,6 @@
 
 -- int difficulty
 -- SpCommon.Phase phase
-
-local SpRound
 do
     SpRound = setmetatable({}, IRound)
     SpRound.__index = SpRound
@@ -15,14 +13,18 @@ do
 
     SpRound.onNew = function(self)
         IRound.onNew(self)
-        self.difficulty = -1
+
+        local dbmap = SpModuleData.getMapInfo(self.mapcode)
+        self.difficulty = dbmap and dbmap.difficulty or -1
 
         self.phase = SpCommon.PHASE_READY
     end
 
     SpRound.onEnd = function(self)
-        IRound.onEnd(self)
         self.phase = SpCommon.PHASE_TIMESUP
+        IRound.onEnd(self)
+        
+        -- add map completion, player xp, etc
     end
 
     SpRound.isReady = function(self)

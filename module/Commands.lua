@@ -2,7 +2,7 @@ do
     local LEVEL_DEV = function(pn) return DEVS[pn] end
     
     commands = {
-        tfmcmd.Main {
+        --[[tfmcmd.Main {
             name = "map",
             aliases = {"np"},
             description = "Loads specified map",
@@ -13,7 +13,7 @@ do
             func = function(pn, code)
                 map_sched.load(code)
             end,
-        },
+        },]]
     }
 
     tfmcmd.setDefaultAllow(true)

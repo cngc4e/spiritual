@@ -1,4 +1,4 @@
-local SpModuleData = setmetatable({}, { __index = MDHelper })
+SpModuleData = setmetatable({}, { __index = MDHelper })
 do
     local FILE_NUMBER = SpCommon.MODULE_ID
     local LATEST_MD_VER = 1
@@ -356,6 +356,16 @@ do
     SpModuleData.getMapcodesByDiff = function(diff)
         if not diff then return maps_by_diff end
         return maps_by_diff[diff] or {}
+    end
+
+    SpModuleData.isStaff = function(pn)
+        local staff = MDHelper.getTable("staff")
+        for i = 1, #staff do
+            if staff[i] == pn then
+                return true
+            end
+        end
+        return false
     end
 
     local should_precomp = {

@@ -1,5 +1,7 @@
 do
     local LEVEL_DEV = function(pn) return DEVS[pn] end
+    local LEVEL_MANAGER = function(pn) return SpCommon.MANAGERS[pn] or LEVEL_DEV(pn) end
+    local LEVEL_STAFF = function(pn) return SpModuleData.isStaff(pn) or LEVEL_MANAGER(pn) end
 
     commands = {
         tfmcmd.Main {
@@ -7,6 +9,61 @@ do
             func = function(pn)
                 tfm.exec.chatMessage("<J>Version v0", pn)
             end,
+        },
+        tfmcmd.Main {
+            name = "map",
+            aliases = {"np"},
+            description = "Loads specified map",
+            allowed = LEVEL_DEV,
+            args = {
+                tfmcmd.ArgString { optional = true },
+            },
+            func = function(pn, code)
+                if not SpCommon.module_started then return end
+                map_sched.load(code)
+            end,
+        },
+        tfmcmd.Main {
+            name = "liststaff",
+            allowed = LEVEL_STAFF,
+            func = function(pn)
+                local managers = {}
+                for name in pairs(DEVS) do managers[#managers+1] = name end
+                for name in pairs(SpCommon.MANAGERS) do managers[#managers+1] = name end
+                players[pn]:chatMsgFmt("Team managers:\n%s", table.concat(managers, " "))
+                local list = SpModuleData.getTable("staff")
+                players[pn]:chatMsgFmt("\nStaff:\n%s", table.concat(list, " "))
+            end
+        },
+        tfmcmd.Main {
+            name = "addstaff",
+            args = {
+                tfmcmd.ArgString { },
+            },
+            allowed = LEVEL_MANAGER,
+            func = function(pn, target)
+                local status, msg = SpModuleData.commit(pn, SpModuleData.ADD_STAFF, target)
+                if status == MDHelper.MERGE_OK then
+                    players[pn]:chatMsgFmt("%s will be given Staff rights.", target)
+                else
+                    players[pn]:chatMsg(msg)
+                end
+            end
+        },
+        tfmcmd.Main {
+            name = "remstaff",
+            args = {
+                tfmcmd.ArgString { },
+            },
+            allowed = LEVEL_MANAGER,
+            func = function(pn, target)
+                local status, msg = SpModuleData.commit(pn, SpModuleData.REMOVE_STAFF, target)
+                if status == MDHelper.MERGE_OK then
+                    players[pn]:chatMsgFmt("%s will be revoked of Staff rights.", target)
+                else
+                    players[pn]:chatMsg(msg)
+                end
+            end
         },
         tfmcmd.Main {
             name = "db",
@@ -68,7 +125,7 @@ do
                                     return
                                 end
                                 local list = SpModuleData.getMapcodesByDiff(diff)
-                                players[pn]:chatMsgFmt("Difficulty %s:\n<p align='center'>%s</p>",
+                                players[pn]:chatMsgFmt("Difficulty %s:\n%s",
                                         diff, table.concat(list, " "))
                             end,
                         }

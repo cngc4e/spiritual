@@ -48,15 +48,16 @@ local keys, callbacks
 @include helpers/map_sched.lua
 @include helpers/tfmcmd.lua
 @include helpers/MDHelper.lua
+@include helpers/TimedTask.lua
 
 @include module/Commands.lua
 @include module/Keys.lua
 @include module/Events.lua
 
 @spinclude module/spiritual/SpCommon.lua
-@spinclude module/spiritual/SpRound.lua
 @spinclude module/spiritual/SpPlayer.lua
 @spinclude module/spiritual/SpModuleData.lua
+@spinclude module/spiritual/SpRound.lua
 @spinclude module/spiritual/SpCommands.lua
 @spinclude module/spiritual/SpKeys.lua
 @spinclude module/spiritual/SpEvents.lua

@@ -26,14 +26,18 @@ do
         end
     end)
 
-    local onTimesUp = function(elapsed)
+    Events.hookEvent("TimesUp", function(elapsed)
+        if not SpCommon.module_started then return end
         ThisRound:onEnd()
-    end
+        -- TODO: get next shaman and their preferred diff
+        local diff = 1
+        map_sched.load(SpCommon.chooseMapFromDiff(diff))
+    end)
 
     Events.hookEvent("Loop", function(elapsed, remaining)
         if remaining <= 0 then
             if ThisRound.phase < SpCommon.PHASE_TIMESUP then
-                onTimesUp(elapsed)
+                Events.doEvent("TimesUp", elapsed)
             end
         end
     end)
