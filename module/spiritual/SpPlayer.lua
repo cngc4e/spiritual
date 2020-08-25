@@ -1,4 +1,4 @@
-@include module/common/Player.lua
+@include module/Player.lua
 
 -- Player methods specific to Spiritual
 local SpPlayer

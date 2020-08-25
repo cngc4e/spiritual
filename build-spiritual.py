@@ -17,7 +17,10 @@ def getContentFromFile(target):
 
 def thisShouldBeAnonymous(match):
     # fuck python
-    return getContentFromFile(match.group(1))
+    target = match.group(1)
+    return "--[[ " + target + " ]]--\n" \
+        + getContentFromFile(target).strip() \
+        + "\n--[[ end of " + target + " ]]--"
                        
 reg = re.compile(r'@(?:include|spinclude) (\S+)', re.S)
 def expand(content):
@@ -25,7 +28,7 @@ def expand(content):
         content = reg.sub(thisShouldBeAnonymous, content)
         return expand(content)
     else:
-        return content
+        return content.strip()
 
 # build translations
 shutil.rmtree("translations-gen", ignore_errors=True)
@@ -48,7 +51,7 @@ for path in files:
 
 template = expand(template)
 
-regremove = re.compile(r'@(\S+)include (\S+)', re.S)
+regremove = re.compile(r'(\n)?@(\S+)include (\S+)', re.S)
 template = regremove.sub("", template)
 
 with open("spiritual.lua", "w", encoding="utf-8") as f:
