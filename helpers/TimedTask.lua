@@ -23,13 +23,18 @@ do
     end
 
     TimedTask.onLoop = function()
+        local done, sz = {}, 0
         for id, task in pairs(tasks) do
             if os.time() >= task[2] then
                 -- timer did not execute in time
                 system.removeTimer(task[1])
                 task[3]()
+                sz = sz + 1
+                done[sz] = id
             end
         end
-        tasks = {}
+        for i = 1, sz do
+            tasks[done[i]] = nil
+        end
     end
 end

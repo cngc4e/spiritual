@@ -94,6 +94,7 @@ end
 
 function eventLoop(elapsed, remaining)
     map_sched.run()
+    TimedTask.onLoop()
     Events.doEvent("Loop", elapsed, remaining)  
 end
 
