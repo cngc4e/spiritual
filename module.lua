@@ -1,5 +1,6 @@
 @include libs/PairTable.lua
 @include libs/bitset.lua
+@include libs/boolset.lua
 @include libs/db2.lua
 @include libs/XMLParse.lua
 
@@ -114,6 +115,7 @@ function eventNewGame()
 end
 
 function eventNewPlayer(pn)
+    pL.room:add(pn)
     pL.dead:add(pn)
     for key, a in pairs(keys) do
         if a.trigger == DOWN_ONLY then

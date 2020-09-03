@@ -22,6 +22,10 @@ do
         return tfm.exec.chatMessage(string.format(str, ...), self.name)
     end
 
+    Player.isShaman = function(self)
+        return room.playerList[self.name].isShaman
+    end
+
     -- Base data for this class, to be used in inherited new() methods
     Player.newData = function(self, pn)
         local p = room.playerList[pn]

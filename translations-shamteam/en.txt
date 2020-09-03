@@ -58,8 +58,10 @@ tribehouse_mode_warning = [[<R>NOTE: The module is running in Tribehouse mode, s
 unafk_message = [[<ROSE>Welcome back! We've been expecting you.]]
 
 ## Map info
-map_info = [[<ROSE>• [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
-shaman_info = [[<N>Shaman: <VP>%s <N>- Level: <J>%s]]
+map_info = [[<ROSE>Ξ [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
+hard = [[Hard]]
+divine = [[Divine]]
+shaman_info = [[<N>Shamans: <VP>%s]]
 windgrav_info = [[<N>Wind: <J>%s <G>| <N>Gravity: <J>%s]]
 portals = [[Portals]]
 no_balloon = [[No-Balloon]]

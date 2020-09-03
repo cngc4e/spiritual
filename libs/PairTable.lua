@@ -12,12 +12,14 @@ do
     end
     local PairTableProto = {
         add = function(self, key)
+            local b = self[key]
             self[key] = true
-            self._len = self._len + 1
+            if b == nil then self._len = self._len + 1 end
         end,
         remove = function(self, key)
+            local b = self[key]
             self[key] = nil
-            self._len = self._len - 1
+            if b ~= nil then self._len = self._len - 1 end
         end,
         len = function(self)
             return self._len

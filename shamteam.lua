@@ -13,12 +13,14 @@ do
     end
     local PairTableProto = {
         add = function(self, key)
+            local b = self[key]
             self[key] = true
-            self._len = self._len + 1
+            if b == nil then self._len = self._len + 1 end
         end,
         remove = function(self, key)
+            local b = self[key]
             self[key] = nil
-            self._len = self._len - 1
+            if b ~= nil then self._len = self._len - 1 end
         end,
         len = function(self)
             return self._len
@@ -135,6 +137,70 @@ do
     bitset.__index = bitset
 end
 --[[ end of libs/bitset.lua ]]--
+--[[ libs/boolset.lua ]]--
+-- Simple boolset wrapper with several useful utilities to make life easier.
+-- Accept position >= 1 only. To check boolean value of position, simply use bs[pos].
+
+local boolset = {}
+
+do
+    -- boolset:set(pos1, ..., posn)
+    -- Set boolean values at all nth positions to true.
+    -- For single flag setting just simply use bs[position] = true
+    boolset.set = function(self, ...)
+        local a = {...}
+        for i = 1, #a do
+            self[a[i]] = true
+        end
+        return self
+    end
+
+    -- boolset:unset(pos1, ..., posn)
+    -- Set boolean values at all nth positions to false.
+    -- For single flag setting just simply use bs[position] = false
+    boolset.unset = function(self, ...)
+        local a = {...}
+        for i = 1, #a do
+            self[a[i]] = false
+        end
+        return self
+    end
+
+    -- boolset:flip(pos)
+    -- Flip boolean value at position pos.
+    boolset.flip = function(self, pos)
+        self[pos] = self[pos] and false or true
+        return self
+    end
+
+    -- boolset.toFilledSet()
+    -- Returns a boolean set which fills up empty positions with false values. 
+    boolset.toFilledSet = function(self)
+        local ret = {}
+        local highest = 0
+        for pos in pairs(self) do
+            if type(pos) == "number" and pos > highest then
+                highest = pos
+            end
+        end
+        for i = 1, highest do
+            if self[i] == nil then
+                ret[i] = false
+            else
+                ret[i] = self[i]
+            end
+        end
+        return ret
+    end
+
+    local mt = {__index = boolset}
+    boolset.new = function(_, bs)
+        bs = bs or {}
+        return setmetatable(bs, mt)
+    end
+
+end
+--[[ end of libs/boolset.lua ]]--
 --[[ libs/db2.lua ]]--
 local db2
 do
@@ -1859,6 +1925,10 @@ do
         return tfm.exec.chatMessage(string.format(str, ...), self.name)
     end
 
+    Player.isShaman = function(self)
+        return room.playerList[self.name].isShaman
+    end
+
     -- Base data for this class, to be used in inherited new() methods
     Player.newData = function(self, pn)
         local p = room.playerList[pn]
@@ -1885,28 +1955,27 @@ local is_official_room = false
 local module_started = false
 local ThisRound = nil
 
-local TsmCommon
 local TsmRound
 local TsmModuleData
 local TsmPlayer
 local TsmRotation
 
 --[[ module/shamteam/TsmEnums.lua ]]--
--- Module
+--- Module
 local MODULE_ID = 3
 local MODULE_ROOMNAME = "shamteam"
 
--- Round phases
+--- Round phases
 local PHASE_START = 0
 local PHASE_READY = 1
 local PHASE_MORTED = 2
 local PHASE_TIMESUP = 3
 
--- Modes
+--- Modes
 local TSM_HARD = 1
 local TSM_DIV = 2
 
--- Staff
+--- Staff
 local MODULE_MANAGERS = {
     ["Cass11337#8417"] = true,
     ["Emeryaurora#0000"] = true,
@@ -1915,7 +1984,46 @@ local MODULE_MANAGERS = {
     ["Rayallan#0000"] = true,
     ["Shibbbbbyy#1143"] = true
 }
+
+--- MODS
+local MOD_TELEPATHY = 1
+local MOD_WORK_FAST = 2
+local MOD_BUTTER_FINGERS = 3
+local MOD_SNAIL_NAIL = 4
+
+-- {name (localisation key), multiplier, description (localisation key)}
+local MODS = {
+    [MOD_TELEPATHY] = {"Telepathic Communication", 0.5, "Disables prespawn preview. You won't be able to see what and where your partner is trying to spawn."},
+    [MOD_WORK_FAST] = {"We Work Fast!", 0.3, "Reduces building time limit by 60 seconds. For the quick hands."},
+    [MOD_BUTTER_FINGERS] = {"Butter Fingers", -0.5, "Allows you and your partner to undo your last spawned object by pressing U up to two times."},
+    [MOD_SNAIL_NAIL] = {"Snail Nail", -0.5, "Increases building time limit by 30 seconds. More time for our nails to arrive."},
+}
+
+--- OPTIONS
+local OPT_ANTILAG = 1
+local OPT_GUI = 2
+local OPT_CIRCLE = 3
+local OPT_LANGUAGE = 4
+
+-- {name (localisation key), description (localisation key)}
+local OPTIONS = {
+    [OPT_ANTILAG] = {"AntiLag", "Attempt to minimise impacts on buildings caused by delayed anchor spawning during high latency."},
+    [OPT_GUI] = {"Show GUI", "Whether to show or hide the help menu, player settings and profile buttons on-screen."},
+    [OPT_CIRCLE] = {"Show partner's range", "Toggles an orange circle that shows the spawning range of your partner in Team Hard Mode."},
+}
 --[[ end of module/shamteam/TsmEnums.lua ]]--
+--[[ module/shamteam/TsmCommon.lua ]]--
+local chooseMapFromDiff = function(diff)
+    local pool = TsmModuleData.getMapcodesByDiff(diff)
+    -- TODO: priority for less completed maps?
+    return pool[math.random(#pool)]
+end
+
+local pnDisp = function(pn)
+    -- TODO: check if the player has the same name as another existing player in the room.
+    return pn and (pn:find('#') and pn:sub(1,-6) or pn) or "N/A"
+end
+--[[ end of module/shamteam/TsmCommon.lua ]]--
 --[[ translations-gen-shamteam/*.lua ]]--
 do
 translations.cn = {
@@ -1943,8 +2051,10 @@ translations.en = {
 	welcome_message="\t<VP>Ξ Welcome to <b>Team Shaman (TSM)</b> v1.0 Alpha (Re-write)! Ξ\n<J>TSM is a building module where dual shamans take turns to spawn objects.\nPress H for more information.\n<R>NOTE: <VP>Module is in early stages of development and may see incomplete or broken features.",
 	tribehouse_mode_warning="<R>NOTE: The module is running in Tribehouse mode, stats are not saved here. Head to any #%s room for stats to save!",
 	unafk_message="<ROSE>Welcome back! We've been expecting you.",
-	map_info="<ROSE>• [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)",
-	shaman_info="<N>Shaman: <VP>%s <N>- Level: <J>%s",
+	map_info="<ROSE>Ξ [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)",
+	hard="Hard",
+	divine="Divine",
+	shaman_info="<N>Shamans: <VP>%s",
 	windgrav_info="<N>Wind: <J>%s <G>| <N>Gravity: <J>%s",
 	portals="Portals",
 	no_balloon="No-Balloon",
@@ -1953,19 +2063,6 @@ translations.en = {
 end
 --[[ end of translations-gen-shamteam/*.lua ]]--
 
---[[ module/shamteam/TsmCommon.lua ]]--
-do
-SpCommon = {}
-
-do
-    SpCommon.chooseMapFromDiff = function(diff)
-        local pool = TsmModuleData.getMapcodesByDiff(diff)
-        -- TODO: priority for less completed maps?
-        return pool[math.random(#pool)]
-    end
-end
-end
---[[ end of module/shamteam/TsmCommon.lua ]]--
 --[[ module/shamteam/TsmPlayer.lua ]]--
 do
 -- Player methods specific to Spiritual
@@ -1992,13 +2089,15 @@ do
     -- DB operations/commits
     TsmModuleData.OP_ADD_MAP = 1
     TsmModuleData.OP_REMOVE_MAP = 2
-    TsmModuleData.OP_UPDATE_MAP_DIFF = 3
-    TsmModuleData.OP_ADD_MAP_COMPLETION = 4
-    TsmModuleData.OP_REPLACE_MAPS = 5
-    TsmModuleData.OP_ADD_BAN = 6
-    TsmModuleData.OP_REMOVE_BAN = 7
-    TsmModuleData.OP_ADD_STAFF = 8
-    TsmModuleData.OP_REMOVE_STAFF = 9
+    TsmModuleData.OP_UPDATE_MAP_DIFF_HARD = 3
+    TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE = 4
+    TsmModuleData.OP_ADD_MAP_COMPLETION_HARD = 5
+    TsmModuleData.OP_ADD_MAP_COMPLETION_DIVINE = 6
+    TsmModuleData.OP_REPLACE_MAPS = 7
+    TsmModuleData.OP_ADD_BAN = 8
+    TsmModuleData.OP_REMOVE_BAN = 9
+    TsmModuleData.OP_ADD_STAFF = 10
+    TsmModuleData.OP_REMOVE_STAFF = 11
 
     -- pre-computed cache
     local maps_by_diff = {}
@@ -2010,9 +2109,12 @@ do
             VERSION = 1,
             db2.VarDataList{ key="maps", size=10000, datatype=db2.Object{schema={
                 db2.UnsignedInt{ key="code", size=4 },
-                db2.UnsignedInt{ key="difficulty", size=1 },
-                db2.UnsignedInt{ key="completed", size=5 },
-                db2.UnsignedInt{ key="rounds", size=5 },
+                db2.UnsignedInt{ key="difficulty_hard", size=1 },
+                db2.UnsignedInt{ key="difficulty_divine", size=1 },
+                db2.UnsignedInt{ key="completed_hard", size=5 },
+                db2.UnsignedInt{ key="completed_divine", size=5 },
+                db2.UnsignedInt{ key="rounds_hard", size=5 },
+                db2.UnsignedInt{ key="rounds_divine", size=5 },
             }}},
             db2.VarDataList{ key="banned", size=1000, datatype=db2.Object{schema={
                 db2.VarChar{ key="name", size=25 },
@@ -2030,7 +2132,12 @@ do
                     [TsmModuleData.OP_REMOVE_MAP] = db2.Object{schema={
                         db2.UnsignedInt{ key="code", size=4 },
                     }},
-                    [TsmModuleData.OP_UPDATE_MAP_DIFF] = db2.Object{schema={
+                    [TsmModuleData.OP_UPDATE_MAP_DIFF_HARD] = db2.Object{schema={
+                        db2.UnsignedInt{ key="code", size=4 },
+                        db2.UnsignedInt{ key="old_diff", size=1 },
+                        db2.UnsignedInt{ key="diff", size=1 },
+                    }},
+                    [TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE] = db2.Object{schema={
                         db2.UnsignedInt{ key="code", size=4 },
                         db2.UnsignedInt{ key="old_diff", size=1 },
                         db2.UnsignedInt{ key="diff", size=1 },
@@ -2117,7 +2224,7 @@ do
                 return "Removed @"..log.code
             end,
         },
-        [TsmModuleData.OP_UPDATE_MAP_DIFF] = {
+        [TsmModuleData.OP_UPDATE_MAP_DIFF_HARD] = {
             init = function(self, mapcode, diff)
                 self.mapcode = mapcode
                 self.diff = diff
@@ -2128,9 +2235,9 @@ do
                 for i = 1, #maps do
                     if maps[i].code == self.mapcode then
                         if not self.old_diff then
-                            self.old_diff = maps[i].difficulty
+                            self.old_diff = maps[i].difficulty_hard
                         end
-                        maps[i].difficulty = self.diff
+                        maps[i].difficulty_hard = self.diff
                         found = true
                         break
                     end
@@ -2151,7 +2258,41 @@ do
                 return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
             end,
         },
-        [TsmModuleData.OP_ADD_MAP_COMPLETION] = {
+        [TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE] = {
+            init = function(self, mapcode, diff)
+                self.mapcode = mapcode
+                self.diff = diff
+            end,
+            merge = function(self, db)
+                local maps = db.maps
+                local found = false
+                for i = 1, #maps do
+                    if maps[i].code == self.mapcode then
+                        if not self.old_diff then
+                            self.old_diff = maps[i].difficulty_divine
+                        end
+                        maps[i].difficulty_divine = self.diff
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
+                end
+                return MDHelper.MERGE_OK, "@"..self.mapcode.." Divine difficulty updated to "..self.diff
+            end,
+            logobject = function(self)
+                return {
+                    code = self.mapcode,
+                    old_diff = self.old_diff or 0,
+                    diff = self.diff
+                }
+            end,
+            changelog = function(log)
+                return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
+            end,
+        },
+        [TsmModuleData.OP_ADD_MAP_COMPLETION_HARD] = {
             init = function(self, mapcode, completed)
                 self.mapcode = mapcode
                 self.completed = completed
@@ -2170,9 +2311,38 @@ do
                 end
 
                 if self.completed then
-                    found.completion = found.completion + 1
+                    found.completed_hard = found.completed_hard + 1
                 end
-                found.rounds = found.rounds + 1
+                found.rounds_hard = found.rounds_hard + 1
+                return MDHelper.MERGE_OK
+            end,
+            logobject = function(self)
+                return nil
+            end,
+            PASSIVE_ON_NOR = true
+        },
+        [TsmModuleData.OP_ADD_MAP_COMPLETION_DIVINE] = {
+            init = function(self, mapcode, completed)
+                self.mapcode = mapcode
+                self.completed = completed
+            end,
+            merge = function(self, db)
+                local maps = db.maps
+                local found = false
+                for i = 1, #maps do
+                    if maps[i].code == self.mapcode then
+                        found = maps[i]
+                        break
+                    end
+                end
+                if not found then
+                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
+                end
+
+                if self.completed then
+                    found.completed_divine = found.completed_divine + 1
+                end
+                found.rounds_divine = found.rounds_divine + 1
                 return MDHelper.MERGE_OK
             end,
             logobject = function(self)
@@ -2317,19 +2487,24 @@ do
     local pre_compute = function()
         -- sort maps table for faster lookups
         local maps = MDHelper.getTable("maps")
-        maps_by_diff = {}
+        maps_by_diff = {
+            [TSM_HARD] = {},
+            [TSM_DIV] = {}
+        }
         maps_by_key = {}
         for i = 1, #maps do
             maps_by_key[maps[i].code] = maps[i]
 
-            local diff = maps[i].difficulty
-            local difft = maps_by_diff[diff]
-            if not difft then
-                difft = { _len = 0 }
-                maps_by_diff[diff] = difft
+            for _, m in ipairs({{TSM_HARD, "difficulty_hard"}, {TSM_DIV, "difficulty_divine"}}) do
+                local diff = maps[i][m[2]]
+                local difft = maps_by_diff[m[1]][diff]
+                if not difft then
+                    difft = { _len = 0 }
+                    maps_by_diff[m[1]][diff] = difft
+                end
+                difft._len = difft._len + 1
+                difft[difft._len] = maps[i].code
             end
-            difft._len = difft._len + 1
-            difft[difft._len] = maps[i].code
         end
     end
 
@@ -2339,9 +2514,9 @@ do
         return maps_by_key[mapcode]
     end
 
-    TsmModuleData.getMapcodesByDiff = function(diff)
+    TsmModuleData.getMapcodesByDiff = function(mode, diff)
         if not diff then return maps_by_diff end
-        return maps_by_diff[diff] or {}
+        return maps_by_diff[mode][diff] or {}
     end
 
     TsmModuleData.isStaff = function(pn)
@@ -2357,7 +2532,8 @@ do
     local should_precomp = {
         TsmModuleData.OP_ADD_MAP,
         TsmModuleData.OP_REMOVE_MAP,
-        TsmModuleData.OP_UPDATE_MAP_DIFF
+        TsmModuleData.OP_UPDATE_MAP_DIFF_HARD,
+        TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE
     }
     TsmModuleData.commit = function(pn, op_id, a1, a2, a3, a4)
         local ret = MDHelper.commit(pn, op_id, a1, a2, a3, a4)
@@ -2420,6 +2596,16 @@ do
     TsmRound = setmetatable({}, IRound)
     TsmRound.__index = TsmRound
 
+    local getShamans = function()
+        local shams = {}
+        for name, p in pairs(room.playerList) do
+            if p.isShaman then
+                shams[#shams + 1] = name
+            end
+        end
+        return shams
+    end
+
     TsmRound.parseXMLObj = function(self, xmlobj)
         IRound.parseXMLObj(self, xmlobj)
         local xo_prop = xmlobj:traverse_first("P").attrib
@@ -2444,9 +2630,16 @@ do
         IRound.onNew(self)
 
         local dbmap = TsmModuleData.getMapInfo(self.mapcode)
-        self.difficulty = dbmap and dbmap.difficulty or -1
-
+        local key = {[TSM_HARD] = "difficulty_hard", [TSM_HARD] = "difficulty_divine"}
+        self.difficulty = dbmap and dbmap[key[self.mode]] or -1
+        self.shamans = getShamans()
+        self.mods = boolset:new()
+    
         self.phase = PHASE_READY
+    end
+
+    TsmRound.onLobby = function(self)
+        self.shamans = getShamans()
     end
 
     TsmRound.onEnd = function(self)
@@ -2479,7 +2672,7 @@ do
 do
     local LEVEL_DEV = function(pn) return DEVS[pn] end
     local LEVEL_MANAGER = function(pn) return MODULE_MANAGERS[pn] or LEVEL_DEV(pn) end
-    local LEVEL_STAFF = function(pn) return --[[TsmModuleData.isStaff(pn) or]] LEVEL_MANAGER(pn) end
+    local LEVEL_STAFF = function(pn) return TsmModuleData.isStaff(pn) or LEVEL_MANAGER(pn) end
 
     commands = {
         tfmcmd.Main {
@@ -2497,7 +2690,7 @@ do
                 tfmcmd.ArgString { optional = true },
             },
             func = function(pn, code)
-                if not SpCommon.module_started then return end
+                if not module_started then return end
                 map_sched.load(code)
             end,
         },
@@ -2721,20 +2914,54 @@ do
         end
 
         tfm.exec.setPlayerScore(pn, 0)
+
+        if pL.room:len() == 2 and ThisRound:isReady() and ThisRound.is_lobby and module_started then
+            -- reload lobby
+            TsmRotation.doLobby()
+        end
     end)
 
-    Events.hookEvent("PlayerDied", function(pn)
+    local handleDeathForRotate = function(pn, win)
+        if not ThisRound.is_lobby then
+            if pL.alive:len() == 0 then
+                Events.doEvent("TimesUp", elapsed)
+            elseif players[pn]:isShaman() then
+                tfm.exec.setGameTime(20)
+            elseif pL.alive:len() <= 2 then
+                local aliveAreShams = true
+                for name in pL.alive:pairs() do
+                    if not players[name]:isShaman() then
+                        aliveAreShams = false
+                        break
+                    end
+                end
+                if aliveAreShams then
+                    if win then tfm.exec.setGameTime(20) end
+                    if ThisRound.opportunist then
+                        for i = 1, #ThisRound.shamans do
+                            local name = ThisRound.shamans[i]
+                            tfm.exec.giveCheese(name)
+                            tfm.exec.playerVictory(name)
+                        end
+                    end
+                end
+            end
+        end
+    end
 
+    Events.hookEvent("PlayerDied", function(pn)
+        handleDeathForRotate(pn)
     end)
 
     Events.hookEvent("PlayerWon", function(pn)
-
+        handleDeathForRotate(pn, true)
     end)
 
     Events.hookEvent("NewGame", function()
         local valid, vars = TsmRotation.signalNgAndRead()
         if not valid then
             print("unexpected map loaded, retrying.")
+            return
         end
 
         if not module_started then module_started = true end
@@ -2742,14 +2969,22 @@ do
         ThisRound = TsmRound:new(vars)
 
         if ThisRound.is_lobby then
-            --ThisRound:onLobby()
+            ThisRound:onLobby()
+            tfm.exec.disableAfkDeath(true)
+            tfm.exec.disableMortCommand(true)
+            tfm.exec.disablePrespawnPreview(false)
         else
             ThisRound:onNew()
 
             for name, player in pairs(players) do
+                local shamanstr = pnDisp(ThisRound.shamans[1])
+                if ThisRound.shamans[2] then
+                    shamanstr = shamanstr .. " - " .. pnDisp(ThisRound.shamans[2])
+                end
                 local t_str = {
-                    player:tlFmt("map_info", ThisRound.mapcode, ThisRound.author, ThisRound.difficulty, "Hard/Divine"),
-                    player:tlFmt("shaman_info", "Unknown#0000", 999)
+                    player:tlFmt("map_info", ThisRound.mapcode, ThisRound.original_author or ThisRound.author, ThisRound.difficulty,
+                            ThisRound.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
+                    player:tlFmt("shaman_info", shamanstr)
                 }
                 local propstr = player:tlFmt("windgrav_info", ThisRound.wind, ThisRound.gravity)
                 local props = { }
@@ -2768,6 +3003,10 @@ do
                 t_str[#t_str+1] = propstr
                 player:chatMsg(table.concat(t_str, "\n"))
             end
+            
+            tfm.exec.disableAfkDeath(false)
+            tfm.exec.disableMortCommand(false)
+            tfm.exec.disablePrespawnPreview(ThisRound.mods[MOD_TELEPATHY])
         end
     end)
 
@@ -2809,7 +3048,8 @@ local chosen_mode
 local preferred_diff_range
 
 local choose_map = function(mode, diff)
-    return 1365330
+    local mapcodes = TsmModuleData.getMapcodesByDiff(mode, diff)
+    return mapcodes[math.random(#mapcodes)]
 end
 
 TsmRotation.overrideMap = function(mapcode)
@@ -2847,13 +3087,16 @@ end
         - is_custom_load
 ]]--
 TsmRotation.signalNgAndRead = function()
-    local mapcode = tonumber(room.currentMap:match('%d+'))
+    local mapcode = int_mapcode(room.currentMap)
 
     if is_awaiting_lobby then
         if mapcode ~= LOBBY_MAPCODE then
             map_sched.load(LOBBY_MAPCODE)
             return false
         end
+    elseif awaiting_mapcode == nil then
+        TsmRotation.doLobby()
+        return false
     elseif awaiting_mapcode ~= mapcode then
         map_sched.load(awaiting_mapcode)
         return false
@@ -2864,7 +3107,7 @@ TsmRotation.signalNgAndRead = function()
     is_awaiting_lobby = nil
     if not is_awaiting_lobby then
         ret.difficulty = awaiting_diff
-        ret.mode = chosen_mode
+        ret.mode = awaiting_mode
         ret.is_custom_load = custom_map ~= nil
 
         awaiting_mapcode = nil
@@ -2878,6 +3121,12 @@ TsmRotation.signalNgAndRead = function()
 end
 
 TsmRotation.doRotate = function()
+    if not MDHelper.getMdLoaded() then
+        print("module data hasn't been loaded, retrying...")
+        TimedTask.add(1000, TsmRotation.doRotate)
+        return
+    end
+
     local map
     local mode = custom_mode or chosen_mode or TSM_HARD
     if custom_map then
@@ -2966,6 +3215,7 @@ function eventNewGame()
 end
 
 function eventNewPlayer(pn)
+    pL.room:add(pn)
     pL.dead:add(pn)
     for key, a in pairs(keys) do
         if a.trigger == DOWN_ONLY then

@@ -4,16 +4,15 @@ local is_official_room = false
 local module_started = false
 local ThisRound = nil
 
-local TsmCommon
 local TsmRound
 local TsmModuleData
 local TsmPlayer
 local TsmRotation
 
 @include module/shamteam/TsmEnums.lua
+@include module/shamteam/TsmCommon.lua
 @includescp translations-gen-shamteam/*.lua
 
-@includescp module/shamteam/TsmCommon.lua
 @includescp module/shamteam/TsmPlayer.lua
 @includescp module/shamteam/TsmModuleData.lua
 @includescp module/shamteam/TsmRound.lua

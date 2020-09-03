@@ -13,7 +13,8 @@ local chosen_mode
 local preferred_diff_range
 
 local choose_map = function(mode, diff)
-    return 1365330
+    local mapcodes = TsmModuleData.getMapcodesByDiff(mode, diff)
+    return mapcodes[math.random(#mapcodes)]
 end
 
 TsmRotation.overrideMap = function(mapcode)
@@ -51,13 +52,16 @@ end
         - is_custom_load
 ]]--
 TsmRotation.signalNgAndRead = function()
-    local mapcode = tonumber(room.currentMap:match('%d+'))
+    local mapcode = int_mapcode(room.currentMap)
 
     if is_awaiting_lobby then
         if mapcode ~= LOBBY_MAPCODE then
             map_sched.load(LOBBY_MAPCODE)
             return false
         end
+    elseif awaiting_mapcode == nil then
+        TsmRotation.doLobby()
+        return false
     elseif awaiting_mapcode ~= mapcode then
         map_sched.load(awaiting_mapcode)
         return false
@@ -68,7 +72,7 @@ TsmRotation.signalNgAndRead = function()
     is_awaiting_lobby = nil
     if not is_awaiting_lobby then
         ret.difficulty = awaiting_diff
-        ret.mode = chosen_mode
+        ret.mode = awaiting_mode
         ret.is_custom_load = custom_map ~= nil
 
         awaiting_mapcode = nil
@@ -82,6 +86,12 @@ TsmRotation.signalNgAndRead = function()
 end
 
 TsmRotation.doRotate = function()
+    if not MDHelper.getMdLoaded() then
+        print("module data hasn't been loaded, retrying...")
+        TimedTask.add(1000, TsmRotation.doRotate)
+        return
+    end
+
     local map
     local mode = custom_mode or chosen_mode or TSM_HARD
     if custom_map then

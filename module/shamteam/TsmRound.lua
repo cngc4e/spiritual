@@ -6,6 +6,16 @@ do
     TsmRound = setmetatable({}, IRound)
     TsmRound.__index = TsmRound
 
+    local getShamans = function()
+        local shams = {}
+        for name, p in pairs(room.playerList) do
+            if p.isShaman then
+                shams[#shams + 1] = name
+            end
+        end
+        return shams
+    end
+
     TsmRound.parseXMLObj = function(self, xmlobj)
         IRound.parseXMLObj(self, xmlobj)
         local xo_prop = xmlobj:traverse_first("P").attrib
@@ -30,9 +40,16 @@ do
         IRound.onNew(self)
 
         local dbmap = TsmModuleData.getMapInfo(self.mapcode)
-        self.difficulty = dbmap and dbmap.difficulty or -1
-
+        local key = {[TSM_HARD] = "difficulty_hard", [TSM_HARD] = "difficulty_divine"}
+        self.difficulty = dbmap and dbmap[key[self.mode]] or -1
+        self.shamans = getShamans()
+        self.mods = boolset:new()
+    
         self.phase = PHASE_READY
+    end
+
+    TsmRound.onLobby = function(self)
+        self.shamans = getShamans()
     end
 
     TsmRound.onEnd = function(self)

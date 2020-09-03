@@ -6,13 +6,15 @@ do
     -- DB operations/commits
     TsmModuleData.OP_ADD_MAP = 1
     TsmModuleData.OP_REMOVE_MAP = 2
-    TsmModuleData.OP_UPDATE_MAP_DIFF = 3
-    TsmModuleData.OP_ADD_MAP_COMPLETION = 4
-    TsmModuleData.OP_REPLACE_MAPS = 5
-    TsmModuleData.OP_ADD_BAN = 6
-    TsmModuleData.OP_REMOVE_BAN = 7
-    TsmModuleData.OP_ADD_STAFF = 8
-    TsmModuleData.OP_REMOVE_STAFF = 9
+    TsmModuleData.OP_UPDATE_MAP_DIFF_HARD = 3
+    TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE = 4
+    TsmModuleData.OP_ADD_MAP_COMPLETION_HARD = 5
+    TsmModuleData.OP_ADD_MAP_COMPLETION_DIVINE = 6
+    TsmModuleData.OP_REPLACE_MAPS = 7
+    TsmModuleData.OP_ADD_BAN = 8
+    TsmModuleData.OP_REMOVE_BAN = 9
+    TsmModuleData.OP_ADD_STAFF = 10
+    TsmModuleData.OP_REMOVE_STAFF = 11
 
     -- pre-computed cache
     local maps_by_diff = {}
@@ -24,9 +26,12 @@ do
             VERSION = 1,
             db2.VarDataList{ key="maps", size=10000, datatype=db2.Object{schema={
                 db2.UnsignedInt{ key="code", size=4 },
-                db2.UnsignedInt{ key="difficulty", size=1 },
-                db2.UnsignedInt{ key="completed", size=5 },
-                db2.UnsignedInt{ key="rounds", size=5 },
+                db2.UnsignedInt{ key="difficulty_hard", size=1 },
+                db2.UnsignedInt{ key="difficulty_divine", size=1 },
+                db2.UnsignedInt{ key="completed_hard", size=5 },
+                db2.UnsignedInt{ key="completed_divine", size=5 },
+                db2.UnsignedInt{ key="rounds_hard", size=5 },
+                db2.UnsignedInt{ key="rounds_divine", size=5 },
             }}},
             db2.VarDataList{ key="banned", size=1000, datatype=db2.Object{schema={
                 db2.VarChar{ key="name", size=25 },
@@ -44,7 +49,12 @@ do
                     [TsmModuleData.OP_REMOVE_MAP] = db2.Object{schema={
                         db2.UnsignedInt{ key="code", size=4 },
                     }},
-                    [TsmModuleData.OP_UPDATE_MAP_DIFF] = db2.Object{schema={
+                    [TsmModuleData.OP_UPDATE_MAP_DIFF_HARD] = db2.Object{schema={
+                        db2.UnsignedInt{ key="code", size=4 },
+                        db2.UnsignedInt{ key="old_diff", size=1 },
+                        db2.UnsignedInt{ key="diff", size=1 },
+                    }},
+                    [TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE] = db2.Object{schema={
                         db2.UnsignedInt{ key="code", size=4 },
                         db2.UnsignedInt{ key="old_diff", size=1 },
                         db2.UnsignedInt{ key="diff", size=1 },
@@ -131,7 +141,7 @@ do
                 return "Removed @"..log.code
             end,
         },
-        [TsmModuleData.OP_UPDATE_MAP_DIFF] = {
+        [TsmModuleData.OP_UPDATE_MAP_DIFF_HARD] = {
             init = function(self, mapcode, diff)
                 self.mapcode = mapcode
                 self.diff = diff
@@ -142,9 +152,9 @@ do
                 for i = 1, #maps do
                     if maps[i].code == self.mapcode then
                         if not self.old_diff then
-                            self.old_diff = maps[i].difficulty
+                            self.old_diff = maps[i].difficulty_hard
                         end
-                        maps[i].difficulty = self.diff
+                        maps[i].difficulty_hard = self.diff
                         found = true
                         break
                     end
@@ -165,7 +175,41 @@ do
                 return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
             end,
         },
-        [TsmModuleData.OP_ADD_MAP_COMPLETION] = {
+        [TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE] = {
+            init = function(self, mapcode, diff)
+                self.mapcode = mapcode
+                self.diff = diff
+            end,
+            merge = function(self, db)
+                local maps = db.maps
+                local found = false
+                for i = 1, #maps do
+                    if maps[i].code == self.mapcode then
+                        if not self.old_diff then
+                            self.old_diff = maps[i].difficulty_divine
+                        end
+                        maps[i].difficulty_divine = self.diff
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
+                end
+                return MDHelper.MERGE_OK, "@"..self.mapcode.." Divine difficulty updated to "..self.diff
+            end,
+            logobject = function(self)
+                return {
+                    code = self.mapcode,
+                    old_diff = self.old_diff or 0,
+                    diff = self.diff
+                }
+            end,
+            changelog = function(log)
+                return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
+            end,
+        },
+        [TsmModuleData.OP_ADD_MAP_COMPLETION_HARD] = {
             init = function(self, mapcode, completed)
                 self.mapcode = mapcode
                 self.completed = completed
@@ -184,9 +228,38 @@ do
                 end
 
                 if self.completed then
-                    found.completion = found.completion + 1
+                    found.completed_hard = found.completed_hard + 1
                 end
-                found.rounds = found.rounds + 1
+                found.rounds_hard = found.rounds_hard + 1
+                return MDHelper.MERGE_OK
+            end,
+            logobject = function(self)
+                return nil
+            end,
+            PASSIVE_ON_NOR = true
+        },
+        [TsmModuleData.OP_ADD_MAP_COMPLETION_DIVINE] = {
+            init = function(self, mapcode, completed)
+                self.mapcode = mapcode
+                self.completed = completed
+            end,
+            merge = function(self, db)
+                local maps = db.maps
+                local found = false
+                for i = 1, #maps do
+                    if maps[i].code == self.mapcode then
+                        found = maps[i]
+                        break
+                    end
+                end
+                if not found then
+                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
+                end
+
+                if self.completed then
+                    found.completed_divine = found.completed_divine + 1
+                end
+                found.rounds_divine = found.rounds_divine + 1
                 return MDHelper.MERGE_OK
             end,
             logobject = function(self)
@@ -331,19 +404,24 @@ do
     local pre_compute = function()
         -- sort maps table for faster lookups
         local maps = MDHelper.getTable("maps")
-        maps_by_diff = {}
+        maps_by_diff = {
+            [TSM_HARD] = {},
+            [TSM_DIV] = {}
+        }
         maps_by_key = {}
         for i = 1, #maps do
             maps_by_key[maps[i].code] = maps[i]
 
-            local diff = maps[i].difficulty
-            local difft = maps_by_diff[diff]
-            if not difft then
-                difft = { _len = 0 }
-                maps_by_diff[diff] = difft
+            for _, m in ipairs({{TSM_HARD, "difficulty_hard"}, {TSM_DIV, "difficulty_divine"}}) do
+                local diff = maps[i][m[2]]
+                local difft = maps_by_diff[m[1]][diff]
+                if not difft then
+                    difft = { _len = 0 }
+                    maps_by_diff[m[1]][diff] = difft
+                end
+                difft._len = difft._len + 1
+                difft[difft._len] = maps[i].code
             end
-            difft._len = difft._len + 1
-            difft[difft._len] = maps[i].code
         end
     end
 
@@ -353,9 +431,9 @@ do
         return maps_by_key[mapcode]
     end
 
-    TsmModuleData.getMapcodesByDiff = function(diff)
+    TsmModuleData.getMapcodesByDiff = function(mode, diff)
         if not diff then return maps_by_diff end
-        return maps_by_diff[diff] or {}
+        return maps_by_diff[mode][diff] or {}
     end
 
     TsmModuleData.isStaff = function(pn)
@@ -371,7 +449,8 @@ do
     local should_precomp = {
         TsmModuleData.OP_ADD_MAP,
         TsmModuleData.OP_REMOVE_MAP,
-        TsmModuleData.OP_UPDATE_MAP_DIFF
+        TsmModuleData.OP_UPDATE_MAP_DIFF_HARD,
+        TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE
     }
     TsmModuleData.commit = function(pn, op_id, a1, a2, a3, a4)
         local ret = MDHelper.commit(pn, op_id, a1, a2, a3, a4)

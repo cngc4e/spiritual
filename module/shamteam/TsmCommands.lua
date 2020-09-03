@@ -1,7 +1,7 @@
 do
     local LEVEL_DEV = function(pn) return DEVS[pn] end
     local LEVEL_MANAGER = function(pn) return MODULE_MANAGERS[pn] or LEVEL_DEV(pn) end
-    local LEVEL_STAFF = function(pn) return --[[TsmModuleData.isStaff(pn) or]] LEVEL_MANAGER(pn) end
+    local LEVEL_STAFF = function(pn) return TsmModuleData.isStaff(pn) or LEVEL_MANAGER(pn) end
 
     commands = {
         tfmcmd.Main {
@@ -19,7 +19,7 @@ do
                 tfmcmd.ArgString { optional = true },
             },
             func = function(pn, code)
-                if not SpCommon.module_started then return end
+                if not module_started then return end
                 map_sched.load(code)
             end,
         },
