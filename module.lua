@@ -3,12 +3,8 @@
 @include libs/db2.lua
 @include libs/XMLParse.lua
 
--- Module variables
-local translations = {}
-local players = {}  -- Players[]
-
-@spinclude translations-gen-spiritual/*.lua
-@divinclude translations-gen-divinity/*.lua
+-- Init extension
+local init_ext = nil
 
 -- Cached variable lookups
 local room = tfm.get.room
@@ -49,10 +45,17 @@ local keys, callbacks
 @include helpers/tfmcmd.lua
 @include helpers/MDHelper.lua
 @include helpers/TimedTask.lua
+@include helpers/Events.lua
 
+@include module/Common.lua
 @include module/Commands.lua
 @include module/Keys.lua
 @include module/Events.lua
+@include module/Player.lua
+
+do
+    @tsminclude module/shamteam/Tsm.lua
+end
 
 @spinclude module/spiritual/SpCommon.lua
 @spinclude module/spiritual/SpPlayer.lua
@@ -96,15 +99,6 @@ function eventLoop(elapsed, remaining)
     map_sched.run()
     TimedTask.onLoop()
     Events.doEvent("Loop", elapsed, remaining)  
-end
-
-function eventMouse(pn, x, y)
-    if not players[pn] then
-        return
-    end
-    if players[pn].pos then  -- Debugging function
-        tfm.exec.chatMessage("<J>X: "..x.."  Y: "..y, pn)
-    end
 end
 
 function eventNewGame()
@@ -193,6 +187,10 @@ local init = function()
     for name in pairs(room.playerList) do eventNewPlayer(name) end
     tfm.exec.setRoomMaxPlayers(DEFAULT_MAX_PLAYERS)
     tfm.exec.setRoomPassword("")
+
+    if type(init_ext) == "function" then
+        init_ext()
+    end
 end
 
 init()
