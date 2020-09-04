@@ -88,17 +88,29 @@ do
             TsmWindow.close(WINDOW_GUI, name)
             -- Lower sync delay to 400ms max for more accurate shaman positions
             tfm.exec.lowerSyncDelay(name)
+            -- Set shaman mode
+            self:setCorrectShamanMode(name)
             -- Init spawnlist
             self.spawnlist[name] = { _len = 0 }
         end
 
         showMapInfo()
+        self:updateMapTitle()
         self:updateTurnUI()
         self:updateCircle()
 
         tfm.exec.disableAfkDeath(false)
         tfm.exec.disableMortCommand(false)
         tfm.exec.disablePrespawnPreview(self.mods[MOD_TELEPATHY] == true)
+
+        local time_limit = self.mode == TSM_HARD and 200 or 180
+        if self.mods[MOD_WORK_FAST] then
+            time_limit = time_limit - 60
+        end
+        if self.mods[MOD_SNAIL_NAIL] then
+            time_limit = time_limit + 30
+        end
+        tfm.exec.setGameTime(time_limit)
     
         -- All set up and ready to go!
         self.phase = PHASE_READY
@@ -111,6 +123,7 @@ do
         tfm.exec.disableAfkDeath(true)
         tfm.exec.disableMortCommand(true)
         tfm.exec.disablePrespawnPreview(false)
+        tfm.exec.setGameTime(30)
     end
 
     TsmRound.onEnd = function(self)
@@ -167,6 +180,15 @@ do
         self:updateCircle()
     end
 
+    TsmRound.updateMapTitle = function(self)
+        local t_mode = {
+            [TSM_HARD]={"J", "THM"},
+            [TSM_DIV]={"VI", "TDM"}
+        }
+        local mode_disp = t_mode[self.mode]
+        ui.setMapName(string.format("<%s>[%s] <ROSE>Difficulty %s - <VP>@%s", mode_disp[1], mode_disp[2], self.difficulty, self.mapcode))
+    end
+
     TsmRound.updateTurnUI = function(self)
         if not self:isReady() then return end
         local color = "CH"
@@ -182,15 +204,7 @@ do
     end
 
     TsmRound.setCorrectShamanMode = function(self, pn)
-        if not self:isReady() then return -1 end
-        if pn == nil then
-            -- All shamans
-            for i = 1, #self.shamans do
-                tfm.exec.setShamanMode(pn, self.mode == TSM_HARD and 1 or 2)
-            end
-        else
-            tfm.exec.setShamanMode(pn, self.mode == TSM_HARD and 1 or 2)
-        end
+        tfm.exec.setShamanMode(pn, self.mode == TSM_HARD and 1 or 2)
     end
 
     -- Checks game rules and penalise/warn accordingly.

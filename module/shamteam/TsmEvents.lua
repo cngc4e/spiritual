@@ -128,6 +128,12 @@ do
             if ThisRound.phase < PHASE_TIMESUP then
                 Events.doEvent("TimesUp", elapsed)
             end
+        else
+            if ThisRound.is_lobby then
+                ui.setMapName(string.format("<N>Next Shamans: <CH>%s <N>- <CH2>%s  <G>|  <N>Game starts in: <V>%s  <G>|  <N>Mice: <V>%s<",
+                        pnDisp(ThisRound.shamans[1]), pnDisp(ThisRound.shamans[2]),
+                        math_round(remaining/1000), pL.room:len()))
+            end
         end
     end)
 
