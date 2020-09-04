@@ -14,7 +14,12 @@ do
 
     Player.tlFmt = function(self, kname, ...)
         local str = translations[self.lang][kname]
-        if not str then return kname end
+        if not str then
+            -- Fallback to English
+            str = translations["en"][kname]
+            -- And finally, fallback to key name
+            if not str then return kname end
+        end
         return string.format(str, ...)
     end
 
