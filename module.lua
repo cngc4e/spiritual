@@ -157,6 +157,10 @@ function eventPlayerRespawn(pn)
     pL.alive:add(pn)
 end
 
+function eventSummoningStart(pn, type, xPos, yPos, angle)
+    Events.doEvent("SummoningStart", pn, type, xPos, yPos, angle)
+end
+
 function eventSummoningEnd(pn, type, xPos, yPos, angle, desc)
     Events.doEvent("SummoningEnd", pn, type, xPos, yPos, angle, desc)
 end

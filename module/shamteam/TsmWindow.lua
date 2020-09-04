@@ -183,9 +183,9 @@ do
                 local opts_str = {}
                 local opts_helplink_str = {}
                 local i = 1
-                for k, opt in pairs(options) do
-                    opts_str[#opts_str+1] = string.format("<a href='event:opttoggle!%s'>%s", k, opt[1])
-                    local is_set = playerData[pn]:getToggle(k)
+                for k, opt in pairs(PLAYER_OPTIONS) do
+                    opts_str[#opts_str+1] = string.format("<a href='event:opttoggle!%s'>%s", k, players[pn]:tlFmt(opt[1]))
+                    local is_set = players[pn].toggles[k]
                     local x, y = 716, 100+((i-1)*25)
                     p_data.images.toggle[k] = {tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_OPTIONS, x, y, pn), x, y}
                     

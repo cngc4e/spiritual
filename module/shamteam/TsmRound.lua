@@ -72,18 +72,29 @@ do
         IRound.onNew(self)
 
         local dbmap = TsmModuleData.getMapInfo(self.mapcode)
-        local key = {[TSM_HARD] = "difficulty_hard", [TSM_HARD] = "difficulty_divine"}
+        local key = {[TSM_HARD] = "difficulty_hard", [TSM_DIV] = "difficulty_divine"}
         self.difficulty = dbmap and dbmap[key[self.mode]] or -1
+    
         self.shamans, self.shamans_key = getShamans()
         self.mods = boolset:new()
+        self.st_index = 1  -- current shaman's turn, index of self.shamans
+        self.arrow_count = 0
+        self.sballoon_count = 0
+        self.spawnlist = {}
 
-        -- Hide GUI for shamans
         for i = 1, #self.shamans do
             local name = self.shamans[i]
+            -- Hide GUI for shamans
             TsmWindow.close(WINDOW_GUI, name)
+            -- Lower sync delay to 400ms max for more accurate shaman positions
+            tfm.exec.lowerSyncDelay(name)
+            -- Init spawnlist
+            self.spawnlist[name] = { _len = 0 }
         end
 
         showMapInfo()
+        self:updateTurnUI()
+        self:updateCircle()
 
         tfm.exec.disableAfkDeath(false)
         tfm.exec.disableMortCommand(false)
@@ -94,6 +105,7 @@ do
     end
 
     TsmRound.onLobby = function(self)
+        self.start_epoch = os.time()
         self.shamans, self.shamans_key = getShamans()
 
         tfm.exec.disableAfkDeath(true)
@@ -112,7 +124,7 @@ do
             -- Show back GUI for shamans
             for i = 1, #self.shamans do
                 local name = self.shamans[i]
-                if players[name]:isToggleSet(OPT_GUI) then
+                if players[name].toggles[OPT_GUI] then
                     TsmWindow.open(WINDOW_GUI, name)
                 end
             end
@@ -127,6 +139,114 @@ do
 
     TsmRound.isShaman = function(self, pn)
         return self.shamans_key[pn] == true
+    end
+
+    TsmRound.isCurrentTurn = function(self, pn)
+        return self:isReady() and self.shamans[self.st_index] == pn
+    end
+
+    TsmRound.getCurrentTurnShaman = function(self)
+        return self.shamans[self.st_index]
+    end
+
+    TsmRound.getNextTurnShaman = function(self)
+        local nidx = self.st_index + 1
+        if nidx > #self.shamans then
+            nidx = 1
+        end
+        return self.shamans[nidx]
+    end
+
+    TsmRound.passShamanTurn = function(self)
+        local nidx = self.st_index + 1
+        if nidx > #self.shamans then
+            nidx = 1
+        end
+        self.st_index = nidx
+        self:updateTurnUI()
+        self:updateCircle()
+    end
+
+    TsmRound.updateTurnUI = function(self)
+        if not self:isReady() then return end
+        local color = "CH"
+        local shaman = self:getCurrentTurnShaman()
+        ui.setShamanName(string.format("<%s>%s's <J>Turn", color, pnDisp(shaman)))
+    end
+
+    TsmRound.updateCircle = function(self)
+        if not self:isReady() then return end
+        for name, player in pairs(players) do
+            player:updateCircle(self:getCurrentTurnShaman())
+        end
+    end
+
+    TsmRound.setCorrectShamanMode = function(self, pn)
+        if not self:isReady() then return -1 end
+        if pn == nil then
+            -- All shamans
+            for i = 1, #self.shamans do
+                tfm.exec.setShamanMode(pn, self.mode == TSM_HARD and 1 or 2)
+            end
+        else
+            tfm.exec.setShamanMode(pn, self.mode == TSM_HARD and 1 or 2)
+        end
+    end
+
+    -- Checks game rules and penalise/warn accordingly.
+    -- Return true if shaman turn should pass, and spawnlist was updated.
+    TsmRound.onSpawnCheck = function(self, pn, type, xPos, yPos, angle, desc)  
+        if type == O_BTYPE_ARROW then
+            if self.mode == TSM_DIV then
+                -- TODO: points deduct for tdm
+                self.arrow_count = self.arrow_count + 1
+                for name, player in pairs(players) do
+                    player:tlChatMsg("used_an_arrow", pnDisp(pn), self.arrow_count)
+                end
+                return false
+            end
+        end
+
+        if not self:isCurrentTurn(pn) then
+            tfm.exec.removeObject(desc.id)
+            players[pn]:tlChatMsg("not_your_turn")
+            -- TODO: points deduct
+            return false
+        end
+
+        if self.mode == TSM_DIV and #self.shamans == 2 then
+            local s1, s2 = room.playerList[self.shamans[1]], room.playerList[self.shamans[2]]
+            if not pythag(s1.x, s1.y, s2.x, s2.y, THM_SPAWN_RANGE) then
+                -- Not within range!
+                tfm.exec.removeObject(desc.id)
+                players[pn]:tlChatMsg("warn_self_range")
+                players[self:getNextTurnShaman()]:tlChatMsg("warn_self_range")
+                return false
+            end
+        end
+
+        if desc.baseType == O_BTYPE_BALLOON then
+            if self.no_balloon then
+                tfm.exec.removeObject(desc.id)
+                return true
+            elseif not desc.ghost then
+                if self.sballoon_count >= MAX_SOLID_BALLOONS then
+                    tfm.exec.removeObject(desc.id)
+                    players[pn]:tlChatMsg("no_more_solid_balloon")
+                    return true
+                else
+                    self.sballoon_count = self.sballoon_count + 1
+                    for name, player in pairs(players) do
+                        player:tlChatMsg("used_a_solid_balloon", pnDisp(pn), MAX_SOLID_BALLOONS - self.sballoon_count)
+                    end
+                end
+            end
+        end
+
+        local sl = self.spawnlist[pn]
+        sl._len = sl._len + 1
+        sl[sl._len] = desc.id
+        return true
     end
 
     TsmRound.new = function(_, vars)

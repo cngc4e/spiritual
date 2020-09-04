@@ -21,7 +21,7 @@ do
     boolset.unset = function(self, ...)
         local a = {...}
         for i = 1, #a do
-            self[a[i]] = false
+            self[a[i]] = nil
         end
         return self
     end
@@ -29,7 +29,11 @@ do
     -- boolset:flip(pos)
     -- Flip boolean value at position pos.
     boolset.flip = function(self, pos)
-        self[pos] = self[pos] and false or true
+        if self[pos] then
+            self[pos] = nil
+        else
+            self[pos] = true
+        end
         return self
     end
 

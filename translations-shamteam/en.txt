@@ -57,6 +57,16 @@ tribehouse_mode_warning = [[<R>NOTE: The module is running in Tribehouse mode, s
 
 unafk_message = [[<ROSE>Welcome back! We've been expecting you.]]
 
+used_an_arrow = [[<ROSE>%s used an arrow! (%s used in total)]]
+used_a_solid_balloon = [[<ROSE>%s used a solid balloon! (%s left)]]
+not_your_turn = [["<J>Ξ It's not your turn to spawn yet!"]]
+warn_self_range = [[<J>Ξ Your partner needs to be within your spawning range.]]
+warn_partner_range = [[<J>Ξ You need to be within your partner's spawning range.]]
+no_more_solid_balloon = [[<J>Ξ You may not spawn any more solid balloons.]]
+
+antilag_warn = [[<ROSE>Hey there, you appear to have lagged. You should consider enabling AntiLag via the options menu (press O).]]
+antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enabled AntiLag for you.]]
+
 ## Map info
 map_info = [[<ROSE>[Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
 hard = [[Hard]]
@@ -66,3 +76,13 @@ windgrav_info = [[<N>Wind: <J>%s <G>| <N>Gravity: <J>%s]]
 portals = [[Portals]]
 no_balloon = [[No-Balloon]]
 opportunist = [[Opportunist]]
+
+## Player options menu
+name_antilag = [[AntiLag]]
+desc_antilag = [[Attempt to minimise impacts on buildings caused by delayed anchor spawning during high latency.]]
+
+name_gui = [[Show GUI]]
+desc_gui = [[Whether to show or hide the help menu, player settings and profile buttons on-screen.]]
+
+name_circle = [[Show partner's range]]
+desc_circle = [[Toggles an orange circle that shows the spawning range of your partner in Team Hard Mode.]]

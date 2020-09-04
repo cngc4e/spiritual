@@ -127,12 +127,12 @@ end
 
 callbacks["opttoggle"] = function(pn, opt_id)
     opt_id = tonumber(opt_id)
-    if not opt_id or not options[opt_id] or not roundv.running then
+    if not opt_id or not PLAYER_OPTIONS[opt_id] then
         return
     end
-    playerData[pn]:flipToggle(opt_id)  -- flip and toggle the flag
+    players[pn].toggles:flip(opt_id)  -- flip and toggle the flag
     
-    local is_set = playerData[pn]:getToggle(opt_id)
+    local is_set = players[pn].toggles[opt_id]
 
     local imgs = TsmWindow.getImages(WINDOW_OPTIONS, pn)
     local img_dats = imgs.toggle
@@ -143,7 +143,7 @@ callbacks["opttoggle"] = function(pn, opt_id)
 
     -- hide/show GUI on toggle
     if opt_id == OPT_GUI then
-        if not pL.shaman[pn] or roundv.lobby then
+        if not ThisRound:isShaman(pn) or ThisRound.is_lobby then
             if is_set then
                 TsmWindow.open(WINDOW_GUI, pn)
             else
@@ -153,19 +153,19 @@ callbacks["opttoggle"] = function(pn, opt_id)
     end
 
     if opt_id == OPT_CIRCLE then
-        if pn == roundv.shamans[roundv.shaman_turn==1 and 2 or 1] then
-            UpdateCircle()
-        end
+        players[pn]:updateCircle()
     end
 
     -- Schedule saving
-    playerData[pn]:scheduleSave()
+    --playerData[pn]:scheduleSave()
 end
 
 callbacks["opthelp"] = function(pn, opt_id)
     opt_id = tonumber(opt_id) or -1
-    local opt = options[opt_id]
+    local opt = PLAYER_OPTIONS[opt_id]
     if opt then
-        tfm.exec.chatMessage("<J>"..opt[1]..": "..opt[2], pn)
+        local player = players[pn]
+        -- Option Name: description
+        player:chatMsgFmt("<J>%s: %s", player:tlFmt(opt[1]), player:tlFmt(opt[2]))
     end
 end

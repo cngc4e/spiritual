@@ -12,7 +12,7 @@ do
 
         tfm.exec.setPlayerScore(pn, 0)
 
-        if player:isToggleSet(OPT_GUI) then
+        if player.toggles[OPT_GUI] then
             TsmWindow.open(WINDOW_GUI, pn)
         end
 
@@ -58,10 +58,52 @@ do
         handleDeathForRotate(pn, true)
     end)
 
+    Events.hookEvent("SummoningStart", function(pn, type, xPos, yPos, angle)
+        if not ThisRound:isReady() then return end
+        ThisRound.startsummon = true  -- workaround b/2
+        if type == O_TYPE_TOTEM then  -- totems are banned; TODO: need more aggressive ban since this can be bypassed with (forced) lag
+            local player = room.playerList[pn]
+            local x, y = player.x, player.y
+            ThisRound:setCorrectShamanMode(pn)
+            tfm.exec.movePlayer(pn, x, y, false, 0, 0, false)
+        end
+    end)
+
+    Events.hookEvent("SummoningEnd", function(pn, type, xPos, yPos, angle, desc)
+        if ThisRound.startsummon then  -- workaround b/2: map prespawned object triggers summoning end event
+            -- AntiLag™ by Leafileaf
+            if players[pn].toggles[OPT_ANTILAG] and desc.baseType ~= 17 and desc.baseType ~= 32 then
+                tfm.exec.moveObject(desc.id, xPos, yPos, false, 0, 0, false, angle, false)
+            end
+            if not ThisRound.is_lobby then
+                if ThisRound:onSpawnCheck(pn, type, xPos, yPos, angle, desc) then
+                    ThisRound:passShamanTurn()
+                end
+            end
+        elseif ThisRound.is_lobby and type == 90 then
+            -- ping detector
+            local ping = nil
+            if ThisRound.start_epoch then
+                ping = os.time() - ThisRound.start_epoch
+            end
+            if ThisRound:isShaman(pn) and ping then
+                if ping >= ANTILAG_FORCE_THRESHOLD then
+                    -- enable antilag
+                    players[pn]:tlChatMsg("antilag_enabled")
+                    players[pn].toggles[OPT_ANTILAG] = true
+                elseif ping >= ANTILAG_WARN_THRESHOLD and not playerData[pn]:getToggle(OPT_ANTILAG) then
+                    -- enable antilag if it isn't already so
+                    players[pn]:tlChatMsg("antilag_warn")
+                end
+            end
+            print("[dbg] the sync is "..pn.." with a ping of "..(ping or "N/A").." ms")
+        end
+    end)
+
     Events.hookEvent("NewGame", function()
         local valid, vars = TsmRotation.signalNgAndRead()
         if not valid then
-            print("unexpected map loaded, retrying.")
+            print(room.currentMap.." unexpected map loaded, retrying.")
             return
         end
 

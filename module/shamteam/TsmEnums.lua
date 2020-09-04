@@ -48,12 +48,22 @@ local IMG_HELP = "172e72750d9.png" -- 18px width
 local IMG_OPTIONS_BG = "172eb766bdd.png" -- 240 x 325
 local IMG_RANGE_CIRCLE = "172ef5c1de4.png" -- 240 x 240
 
--- Link IDs
+--- Link IDs
 local LINK_DISCORD = 1
 
--- AntiLag ping (ms) thresholds
+--- AntiLag ping (ms) thresholds
 local ANTILAG_WARN_THRESHOLD = 690
 local ANTILAG_FORCE_THRESHOLD = 1100
+
+--- Shaman objects / summons
+local O_BTYPE_ARROW = 0
+local O_BTYPE_BALLOON = 28
+
+local O_TYPE_TOTEM = 44
+
+--- Others
+local THM_SPAWN_RANGE = 60 -- Spawn range radius (px) in hard mode
+local MAX_SOLID_BALLOONS = 3
 
 --- MODS
 local MOD_TELEPATHY = 1
@@ -62,7 +72,7 @@ local MOD_BUTTER_FINGERS = 3
 local MOD_SNAIL_NAIL = 4
 
 -- {name (localisation key), multiplier, description (localisation key)}
-local MODS = {
+local GAME_MODS = {
     [MOD_TELEPATHY] = {"Telepathic Communication", 0.5, "Disables prespawn preview. You won't be able to see what and where your partner is trying to spawn."},
     [MOD_WORK_FAST] = {"We Work Fast!", 0.3, "Reduces building time limit by 60 seconds. For the quick hands."},
     [MOD_BUTTER_FINGERS] = {"Butter Fingers", -0.5, "Allows you and your partner to undo your last spawned object by pressing U up to two times."},
@@ -76,8 +86,8 @@ local OPT_CIRCLE = 3
 local OPT_LANGUAGE = 4
 
 -- {name (localisation key), description (localisation key)}
-local OPTIONS = {
-    [OPT_ANTILAG] = {"AntiLag", "Attempt to minimise impacts on buildings caused by delayed anchor spawning during high latency."},
-    [OPT_GUI] = {"Show GUI", "Whether to show or hide the help menu, player settings and profile buttons on-screen."},
-    [OPT_CIRCLE] = {"Show partner's range", "Toggles an orange circle that shows the spawning range of your partner in Team Hard Mode."},
+local PLAYER_OPTIONS = {
+    [OPT_ANTILAG] = {"name_antilag", "desc_antilag"},
+    [OPT_GUI] = {"name_gui", "desc_gui"},
+    [OPT_CIRCLE] = {"name_circle", "desc_circle"},
 }
