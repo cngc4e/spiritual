@@ -16,6 +16,10 @@ init_ext = function()
     end
     system.disableChatCommandDisplay(nil,true)
     is_official_room = IsOfficialRoom(room.name)
+    
+end
+
+postinit_ext = function()
     TsmRotation.doLobby()
     MDHelper.trySync()
 end

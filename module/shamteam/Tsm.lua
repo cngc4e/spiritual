@@ -8,6 +8,7 @@ local TsmRound
 local TsmModuleData
 local TsmPlayer
 local TsmRotation
+local TsmWindow
 
 @include module/shamteam/TsmEnums.lua
 @include module/shamteam/TsmCommon.lua
@@ -18,6 +19,8 @@ local TsmRotation
 @includescp module/shamteam/TsmRound.lua
 @includescp module/shamteam/TsmCommands.lua
 @includescp module/shamteam/TsmKeys.lua
+@includescp module/shamteam/TsmCallbacks.lua
 @includescp module/shamteam/TsmEvents.lua
 @includescp module/shamteam/TsmRotation.lua
+@includescp module/shamteam/TsmWindow.lua
 @includescp module/shamteam/TsmInit.lua

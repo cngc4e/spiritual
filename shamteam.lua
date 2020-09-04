@@ -1151,8 +1151,11 @@ do
 end
 --[[ end of libs/XMLParse.lua ]]--
 
+local DEFAULT_MAX_PLAYERS = 50
+
 -- Init extension
 local init_ext = nil
+local postinit_ext = nil
 
 -- Cached variable lookups
 local room = tfm.get.room
@@ -1236,16 +1239,6 @@ local function int_mapcode(code)
         return code
     else
         return nil
-    end
-end
-
-local function tl(pn, kname)
-    local pref_lang = players[pn] and players[pn].lang or "en"
-    local lang = translations[pref_lang] and pref_lang or "en"
-    if translations[lang][kname] then
-        return translations[lang][kname]
-    else
-        return kname
     end
 end
 
@@ -1629,6 +1622,7 @@ do
     local file_id = nil
     local latest_schema_version = nil
     local file_parse_callback = nil
+    local is_nor = false
     local inited = false
 
     local MODULE_LOG_OP = {
@@ -1680,7 +1674,7 @@ do
                     MDHelper.commit(nil, MDHelper.OP_ADD_MODULE_LOG, pn, op_id, logobj)
                 end
                 -- don't schedule and sync commit if the operation specifies to be passive in non-official rooms
-                if is_official_room or not op_mt.PASSIVE_ON_NOR then
+                if is_nor or not op_mt.PASSIVE_ON_NOR then
                     -- Schedule the commit to be done again during the next syncing
                     db_commits[#db_commits+1] = { op_mt, pn }
                 end
@@ -1764,13 +1758,14 @@ do
         end
     end
 
-    MDHelper.init = function(fid, schms, latest, ops, default_db, parsed_cb)
+    MDHelper.init = function(fid, schms, latest, ops, default_db, nor, parsed_cb)
         file_id = fid
         schema = schms
         latest_schema_version = latest
         operations = ops
         operations[MDHelper.OP_ADD_MODULE_LOG] = MODULE_LOG_OP
         db_cache = default_db
+        is_nor = nor
         file_parse_callback = parsed_cb
         inited = true
     end
@@ -1874,6 +1869,10 @@ end
 keys = {
 }
 --[[ end of module/Keys.lua ]]--
+--[[ module/Callbacks.lua ]]--
+callbacks = {
+}
+--[[ end of module/Callbacks.lua ]]--
 --[[ module/Events.lua ]]--
 do
     Events.hookEvent("NewPlayer", function(pn)
@@ -1917,16 +1916,12 @@ do
 
     Player.tlFmt = function(self, kname, ...)
         local str = translations[self.lang][kname]
+        if not str then return kname end
         return string.format(str, ...)
     end
 
     Player.tlChatMsg = function(self, kname, ...)
-        local str = translations[self.lang][kname]
-        return tfm.exec.chatMessage(string.format(str, ...), self.name)
-    end
-
-    Player.isShaman = function(self)
-        return room.playerList[self.name].isShaman
+        return tfm.exec.chatMessage(self:tlFmt(kname, ...), self.name)
     end
 
     -- Base data for this class, to be used in inherited new() methods
@@ -1959,6 +1954,7 @@ local TsmRound
 local TsmModuleData
 local TsmPlayer
 local TsmRotation
+local TsmWindow
 
 --[[ module/shamteam/TsmEnums.lua ]]--
 --- Module
@@ -1977,13 +1973,45 @@ local TSM_DIV = 2
 
 --- Staff
 local MODULE_MANAGERS = {
-    ["Cass11337#8417"] = true,
     ["Emeryaurora#0000"] = true,
     ["Pegasusflyer#0000"] = true,
     ["Rini#5475"] = true,
     ["Rayallan#0000"] = true,
     ["Shibbbbbyy#1143"] = true
 }
+
+--- Windows
+local WINDOW_GUI = bit32.lshift(0, 7)
+local WINDOW_HELP = bit32.lshift(1, 7)
+local WINDOW_LOBBY = bit32.lshift(2, 7)
+local WINDOW_OPTIONS = bit32.lshift(3, 7)
+local WINDOW_DB_MAP = bit32.lshift(4, 7)
+local WINDOW_DB_HISTORY = bit32.lshift(5, 7)
+
+--- TextAreas
+local TA_SPECTATING = 9000
+
+--- GUI color defs
+local GUI_BTN = "<font color='#EDCC8D'>"
+
+--- Images
+local IMG_FEATHER_HARD = "172e1332b11.png" -- hard feather 30px width
+local IMG_FEATHER_DIVINE = "172e14b438a.png" -- divine feather 30px width
+local IMG_FEATHER_HARD_DISABLED = "172ed052b25.png"
+local IMG_FEATHER_DIVINE_DISABLED = "172ed050e45.png"
+local IMG_TOGGLE_ON = "172e5c315f1.png" -- 30px width
+local IMG_TOGGLE_OFF = "172e5c335e7.png" -- 30px width
+local IMG_LOBBY_BG = "172e68f8d24.png"
+local IMG_HELP = "172e72750d9.png" -- 18px width
+local IMG_OPTIONS_BG = "172eb766bdd.png" -- 240 x 325
+local IMG_RANGE_CIRCLE = "172ef5c1de4.png" -- 240 x 240
+
+-- Link IDs
+local LINK_DISCORD = 1
+
+-- AntiLag ping (ms) thresholds
+local ANTILAG_WARN_THRESHOLD = 690
+local ANTILAG_FORCE_THRESHOLD = 1100
 
 --- MODS
 local MOD_TELEPATHY = 1
@@ -2051,7 +2079,7 @@ translations.en = {
 	welcome_message="\t<VP>Ξ Welcome to <b>Team Shaman (TSM)</b> v1.0 Alpha (Re-write)! Ξ\n<J>TSM is a building module where dual shamans take turns to spawn objects.\nPress H for more information.\n<R>NOTE: <VP>Module is in early stages of development and may see incomplete or broken features.",
 	tribehouse_mode_warning="<R>NOTE: The module is running in Tribehouse mode, stats are not saved here. Head to any #%s room for stats to save!",
 	unafk_message="<ROSE>Welcome back! We've been expecting you.",
-	map_info="<ROSE>Ξ [Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)",
+	map_info="<ROSE>[Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)",
 	hard="Hard",
 	divine="Divine",
 	shaman_info="<N>Shamans: <VP>%s",
@@ -2070,6 +2098,11 @@ do
     TsmPlayer = setmetatable({}, Player)
     TsmPlayer.__index = TsmPlayer
 
+
+    TsmPlayer.isToggleSet = function(self, toggle_id)
+        --return self.pdata.toggles[toggle_id]
+        if toggle_id == OPT_GUI then return true end  -- TODO
+    end
 
     TsmPlayer.new = function(self, pn)
         local data = Player:newData(pn)
@@ -2184,7 +2217,7 @@ do
                 if found then
                     return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." already exists in the database."
                 end
-                maps[#maps+1] = {code=self.mapcode, difficulty=0, completed=0, rounds=0}
+                maps[#maps+1] = {code=self.mapcode, difficulty_hard=0, difficulty_divine=0, completed_hard=0, rounds_hard=0, completed_divine=0, rounds_divine=0}
                 return MDHelper.MERGE_OK, "@"..self.mapcode.." successfully added."
             end,
             logobject = function(self)
@@ -2544,7 +2577,7 @@ do
     end
     
     MDHelper.init(FILE_NUMBER, MD_SCHEMA,
-            LATEST_MD_VER, operations, DEFAULT_DB, pre_compute)
+            LATEST_MD_VER, operations, DEFAULT_DB, is_official_room, pre_compute)
 end
 end
 --[[ end of module/shamteam/TsmModuleData.lua ]]--
@@ -2597,13 +2630,44 @@ do
     TsmRound.__index = TsmRound
 
     local getShamans = function()
-        local shams = {}
+        local shams, shams_key = {}, {}
         for name, p in pairs(room.playerList) do
             if p.isShaman then
                 shams[#shams + 1] = name
+                shams_key[name] = true
             end
         end
-        return shams
+        return shams, shams_key
+    end
+
+    local showMapInfo = function()
+        for name, player in pairs(players) do
+            local shamanstr = pnDisp(ThisRound.shamans[1])
+            if ThisRound.shamans[2] then
+                shamanstr = shamanstr .. " - " .. pnDisp(ThisRound.shamans[2])
+            end
+            local t_str = {
+                player:tlFmt("map_info", ThisRound.mapcode, ThisRound.original_author or ThisRound.author, ThisRound.difficulty,
+                        ThisRound.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
+                player:tlFmt("shaman_info", shamanstr)
+            }
+            local propstr = player:tlFmt("windgrav_info", ThisRound.wind, ThisRound.gravity)
+            local props = { }
+            if ThisRound.portals then
+                props[#props+1] = player:tlFmt("portals")
+            end
+            if ThisRound.no_balloon then
+                props[#props+1] = player:tlFmt("no_balloon")
+            end
+            if ThisRound.opportunist then
+                props[#props+1] = player:tlFmt("opportunist")
+            end
+            if #props > 0 then
+                propstr = propstr .. " <G>| <VP>" .. table.concat(props, " <G>| <VP>")
+            end
+            t_str[#t_str+1] = propstr
+            player:chatMsg(table.concat(t_str, "\n"))
+        end
     end
 
     TsmRound.parseXMLObj = function(self, xmlobj)
@@ -2627,34 +2691,65 @@ do
     end
 
     TsmRound.onNew = function(self)
+        -- Init data
         IRound.onNew(self)
 
         local dbmap = TsmModuleData.getMapInfo(self.mapcode)
         local key = {[TSM_HARD] = "difficulty_hard", [TSM_HARD] = "difficulty_divine"}
         self.difficulty = dbmap and dbmap[key[self.mode]] or -1
-        self.shamans = getShamans()
+        self.shamans, self.shamans_key = getShamans()
         self.mods = boolset:new()
+
+        -- Hide GUI for shamans
+        for i = 1, #self.shamans do
+            local name = self.shamans[i]
+            TsmWindow.close(WINDOW_GUI, name)
+        end
+
+        showMapInfo()
+
+        tfm.exec.disableAfkDeath(false)
+        tfm.exec.disableMortCommand(false)
+        tfm.exec.disablePrespawnPreview(self.mods[MOD_TELEPATHY] == true)
     
+        -- All set up and ready to go!
         self.phase = PHASE_READY
     end
 
     TsmRound.onLobby = function(self)
-        self.shamans = getShamans()
+        self.shamans, self.shamans_key = getShamans()
+
+        tfm.exec.disableAfkDeath(true)
+        tfm.exec.disableMortCommand(true)
+        tfm.exec.disablePrespawnPreview(false)
     end
 
     TsmRound.onEnd = function(self)
         self.phase = PHASE_TIMESUP
         IRound.onEnd(self)
-        
+
         if self.is_lobby then
             TsmRotation.setDiffRange(1, 5)
+            TsmRotation.doRotate()
         else
+            -- Show back GUI for shamans
+            for i = 1, #self.shamans do
+                local name = self.shamans[i]
+                if players[name]:isToggleSet(OPT_GUI) then
+                    TsmWindow.open(WINDOW_GUI, name)
+                end
+            end
             -- add map completion, player xp, etc
+            TsmRotation.doLobby()
         end
     end
 
     TsmRound.isReady = function(self)
         return self.phase >= PHASE_READY
+    end
+
+    TsmRound.isShaman = function(self, pn)
+        return self.shamans_key[pn] == true
     end
 
     TsmRound.new = function(_, vars)
@@ -2700,9 +2795,9 @@ do
             func = function(pn)
                 local managers = {}
                 for name in pairs(DEVS) do managers[#managers+1] = name end
-                for name in pairs(SpCommon.MANAGERS) do managers[#managers+1] = name end
+                for name in pairs(MODULE_MANAGERS) do managers[#managers+1] = name end
                 players[pn]:chatMsgFmt("Team managers:\n%s", table.concat(managers, " "))
-                local list = SpModuleData.getTable("staff")
+                local list = TsmModuleData.getTable("staff")
                 players[pn]:chatMsgFmt("\nStaff:\n%s", table.concat(list, " "))
             end
         },
@@ -2713,7 +2808,7 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = SpModuleData.commit(pn, SpModuleData.ADD_STAFF, target)
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.ADD_STAFF, target)
                 if status == MDHelper.MERGE_OK then
                     players[pn]:chatMsgFmt("%s will be given Staff rights.", target)
                 else
@@ -2728,7 +2823,7 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = SpModuleData.commit(pn, SpModuleData.REMOVE_STAFF, target)
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.REMOVE_STAFF, target)
                 if status == MDHelper.MERGE_OK then
                     players[pn]:chatMsgFmt("%s will be revoked of Staff rights.", target)
                 else
@@ -2748,17 +2843,18 @@ do
                     map = function(action, p1)
                         local actions = {
                             info = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
                                 end
-                                local info = string.format("Mapcode: @%s\nDifficulty: %s\nCompletion: %s / %s",
-                                        map.code, map.difficulty, map.completed, map.rounds)
+                                local info = string.format("Mapcode: @%s\nDifficulty: %s, %s\nCompletion: %s / %s, %s / %s",
+                                        map.code, map.difficulty_hard, map.difficulty_divine,
+                                        map.completed_hard, map.rounds_hard, map.completed_divine, map.rounds_divine)
                                 tfm.exec.chatMessage(info, pn)
                             end,
-                            diff = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                            diffh = function()
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
@@ -2768,35 +2864,59 @@ do
                                     tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_UPDATE_MAP_DIFF, map.code, diff)
-                                tfm.exec.chatMessage("Difficulty of @"..map.code.." will be changed to "..p1, pn)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_UPDATE_MAP_DIFF_HARD, map.code, diff)
+                                tfm.exec.chatMessage("THM Difficulty of @"..map.code.." will be changed to "..p1, pn)
+                            end,
+                            diffd = function()
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
+                                if not map then
+                                    tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
+                                    return
+                                end
+                                local diff = tonumber(p1)
+                                if not diff then
+                                    tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
+                                    return
+                                end
+                                TsmModuleData.commit(pn, TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE, map.code, diff)
+                                tfm.exec.chatMessage("TDM Difficulty of @"..map.code.." will be changed to "..p1, pn)
                             end,
                             add = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if map then
                                     tfm.exec.chatMessage("<R>This map is already in rotation.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_ADD_MAP, ThisRound.mapcode)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_ADD_MAP, ThisRound.mapcode)
                                 tfm.exec.chatMessage("Adding @"..ThisRound.mapcode, pn)
                             end,
                             remove = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_REMOVE_MAP, map.code)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_REMOVE_MAP, map.code)
                                 tfm.exec.chatMessage("Removing @"..map.code, pn)
                             end,
-                            list = function()
+                            listh = function()
                                 local diff = tonumber(p1)
                                 if not diff then
                                     tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
                                     return
                                 end
-                                local list = SpModuleData.getMapcodesByDiff(diff)
-                                players[pn]:chatMsgFmt("Difficulty %s:\n%s",
+                                local list = TsmModuleData.getMapcodesByDiff(TSM_HARD, diff)
+                                players[pn]:chatMsgFmt("THM Difficulty %s:\n%s",
+                                        diff, table.concat(list, " "))
+                            end,
+                            listd = function()
+                                local diff = tonumber(p1)
+                                if not diff then
+                                    tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
+                                    return
+                                end
+                                local list = TsmModuleData.getMapcodesByDiff(TSM_DIV, diff)
+                                players[pn]:chatMsgFmt("TDM Difficulty %s:\n%s",
                                         diff, table.concat(list, " "))
                             end,
                         }
@@ -2850,11 +2970,11 @@ end
 do
 keys[71] = {
     func = function(pn, enable) -- g (display GUI for shamans)
-        if not roundv.lobby and pL.shaman[pn] then
+        if not ThisRound.is_lobby and ThisRound:isShaman(pn) then
             if enable then
-                sWindow.open(WINDOW_GUI, pn)
+                TsmWindow.open(WINDOW_GUI, pn)
             else
-                sWindow.close(WINDOW_GUI, pn)
+                TsmWindow.close(WINDOW_GUI, pn)
             end
         end
     end,
@@ -2863,10 +2983,10 @@ keys[71] = {
 
 keys[72] = {
     func = function(pn) -- h (display help)
-        if sWindow.isOpened(WINDOW_HELP, pn) then
-            sWindow.close(WINDOW_HELP, pn)
+        if TsmWindow.isOpened(WINDOW_HELP, pn) then
+            TsmWindow.close(WINDOW_HELP, pn)
         else
-            sWindow.open(WINDOW_HELP, pn)
+            TsmWindow.open(WINDOW_HELP, pn)
         end
     end,
     trigger = DOWN_ONLY
@@ -2874,10 +2994,10 @@ keys[72] = {
 
 keys[79] = {
     func = function(pn) -- o (display player options)
-        if sWindow.isOpened(WINDOW_OPTIONS, pn) then
-            sWindow.close(WINDOW_OPTIONS, pn)
+        if TsmWindow.isOpened(WINDOW_OPTIONS, pn) then
+            TsmWindow.close(WINDOW_OPTIONS, pn)
         else
-            sWindow.open(WINDOW_OPTIONS, pn)
+            TsmWindow.open(WINDOW_OPTIONS, pn)
         end
     end,
     trigger = DOWN_ONLY
@@ -2899,6 +3019,181 @@ keys[85] = {
 }
 end
 --[[ end of module/shamteam/TsmKeys.lua ]]--
+--[[ module/shamteam/TsmCallbacks.lua ]]--
+do
+callbacks["help"] = function(pn, tab)
+    if tab == 'Close' then
+        TsmWindow.close(WINDOW_HELP, pn)
+    else
+        TsmWindow.open(WINDOW_HELP, pn, tab)
+    end
+end
+
+callbacks["options"] = function(pn, action)
+    if action == 'close' then
+        TsmWindow.close(WINDOW_OPTIONS, pn)
+    elseif not TsmWindow.isOpened(WINDOW_OPTIONS, pn) then
+        TsmWindow.open(WINDOW_OPTIONS, pn)
+    end
+end
+
+callbacks["unafk"] = function(pn)
+    SetSpectate(pn, false)
+    tfm.exec.chatMessage(tl("unafk_message", pn), pn)
+end
+
+callbacks["link"] = function(pn, link_id)
+    -- Do not print out raw text from players! Use predefined IDs instead.
+    link_id = tonumber(link_id)
+    local links = {
+        [LINK_DISCORD] = "https://discord.gg/YkzM4rh",
+    }
+    if links[link_id] then
+        tfm.exec.chatMessage(links[link_id], pn)
+    end
+end
+
+callbacks["setmode"] = function(pn, mode_id)
+    mode_id = tonumber(mode_id) or -1
+    if not roundv.running or not roundv.lobby or (mode_id ~= TSM_HARD and mode_id ~= TSM_DIV)
+            or pn ~= roundv.shamans[1] then -- only shaman #1 gets to set mode
+        return
+    end
+    roundv.mode = mode_id
+
+    for name in pL.room:pairs() do
+        local imgs = TsmWindow.getImages(WINDOW_LOBBY, name)
+        local img_dats = imgs.mode
+        if img_dats and img_dats[mode_id] then
+            tfm.exec.removeImage(img_dats[TSM_HARD][1])
+            tfm.exec.removeImage(img_dats[TSM_DIV][1])
+            if mode_id == TSM_HARD then
+                img_dats[TSM_HARD][1] = tfm.exec.addImage(IMG_FEATHER_HARD, ":"..WINDOW_LOBBY, img_dats[TSM_HARD][2], img_dats[TSM_HARD][3], name)
+                img_dats[TSM_DIV][1] = tfm.exec.addImage(IMG_FEATHER_DIVINE_DISABLED, ":"..WINDOW_LOBBY, img_dats[TSM_DIV][2], img_dats[TSM_DIV][3], name)
+            else
+                img_dats[TSM_HARD][1] = tfm.exec.addImage(IMG_FEATHER_HARD_DISABLED, ":"..WINDOW_LOBBY, img_dats[TSM_HARD][2], img_dats[TSM_HARD][3], name)
+                img_dats[TSM_DIV][1] = tfm.exec.addImage(IMG_FEATHER_DIVINE, ":"..WINDOW_LOBBY, img_dats[TSM_DIV][2], img_dats[TSM_DIV][3], name)
+            end
+        end
+    end
+end
+
+callbacks["setdiff"] = function(pn, id, add)
+    id = tonumber(id) or 0
+    add = tonumber(add) or 0
+    if not roundv.running or not roundv.lobby 
+            or pn ~= roundv.shamans[1] -- only shaman #1 gets to choose difficulty
+            or (id ~= 1 and id ~= 2)
+            or (add ~= -1 and add ~= 1) then
+        return
+    end
+    local diff_id = "diff"..id
+    local new_diff = roundv[diff_id] + add
+
+    if new_diff < 1 or new_diff > #mapcodes[roundv.mode]
+            or (id == 1 and roundv.diff2 - new_diff < 1)
+            or (id == 2 and new_diff - roundv.diff1 < 1) then  -- range error
+        tfm.exec.chatMessage(string.format("<R>error: range must have a value of 1-%s and have a difference of at least 1", #mapcodes[roundv.mode]), pn)
+        return
+    end
+
+    roundv[diff_id] = new_diff
+    ui.updateTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..roundv.diff1)
+    ui.updateTextArea(WINDOW_LOBBY+10,"<p align='center'><font size='13'><b>"..roundv.diff2)
+end
+
+callbacks["setready"] = function(pn)
+    if not roundv.running or not roundv.lobby then return end
+    if roundv.shamans[1] == pn then
+        local is_ready = not roundv.shaman_ready[1]
+        roundv.shaman_ready[1] = is_ready
+
+        local blt = is_ready and "&#9745;" or "&#9744;";
+        ui.updateTextArea(WINDOW_LOBBY+18, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
+    elseif roundv.shamans[2] == pn then
+        local is_ready = not roundv.shaman_ready[2]
+        roundv.shaman_ready[2] = is_ready
+
+        local blt = is_ready and "&#9745;" or "&#9744;";
+        ui.updateTextArea(WINDOW_LOBBY+19, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
+    end
+    if roundv.shaman_ready[1] and roundv.shaman_ready[2] then
+        rotate_evt.timesup()
+    end
+end
+
+callbacks["modtoggle"] = function(pn, mod_id)
+    mod_id = tonumber(mod_id)
+    if not roundv.running or not roundv.lobby or not mod_id or not mods[mod_id]
+            or pn ~= roundv.shamans[2] then -- only shaman #2 gets to choose mods
+        return
+    end
+    local is_set = roundv.mods:flip(mod_id):isset(mod_id)
+    for name in pL.room:pairs() do
+        local imgs = TsmWindow.getImages(WINDOW_LOBBY, name)
+        local img_dats = imgs.toggle
+        if img_dats and img_dats[mod_id] then
+            tfm.exec.removeImage(img_dats[mod_id][1])
+            img_dats[mod_id][1] = tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_LOBBY, img_dats[mod_id][2], img_dats[mod_id][3], name)
+        end
+    end
+    ui.updateTextArea(WINDOW_LOBBY+17,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(GetExpMult()))
+end
+
+callbacks["modhelp"] = function(pn, mod_id)
+    mod_id = tonumber(mod_id) or -1
+    local mod = mods[mod_id]
+    if mod then
+        ui.updateTextArea(WINDOW_LOBBY+16, string.format("<p align='center'><i><J>%s: %s %s of original exp.", mod[1], mod[3], expDisp(mod[2], false)),pn)
+    end
+end
+
+callbacks["opttoggle"] = function(pn, opt_id)
+    opt_id = tonumber(opt_id)
+    if not opt_id or not options[opt_id] or not roundv.running then
+        return
+    end
+    playerData[pn]:flipToggle(opt_id)  -- flip and toggle the flag
+    
+    local is_set = playerData[pn]:getToggle(opt_id)
+
+    local imgs = TsmWindow.getImages(WINDOW_OPTIONS, pn)
+    local img_dats = imgs.toggle
+    if img_dats and img_dats[opt_id] then
+        tfm.exec.removeImage(img_dats[opt_id][1])
+        img_dats[opt_id][1] = tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_OPTIONS, img_dats[opt_id][2], img_dats[opt_id][3], pn)
+    end
+
+    -- hide/show GUI on toggle
+    if opt_id == OPT_GUI then
+        if not pL.shaman[pn] or roundv.lobby then
+            if is_set then
+                TsmWindow.open(WINDOW_GUI, pn)
+            else
+                TsmWindow.close(WINDOW_GUI, pn)
+            end
+        end
+    end
+
+    if opt_id == OPT_CIRCLE then
+        if pn == roundv.shamans[roundv.shaman_turn==1 and 2 or 1] then
+            UpdateCircle()
+        end
+    end
+
+    -- Schedule saving
+    playerData[pn]:scheduleSave()
+end
+
+callbacks["opthelp"] = function(pn, opt_id)
+    opt_id = tonumber(opt_id) or -1
+    local opt = options[opt_id]
+    if opt then
+        tfm.exec.chatMessage("<J>"..opt[1]..": "..opt[2], pn)
+    end
+end
+end
+--[[ end of module/shamteam/TsmCallbacks.lua ]]--
 --[[ module/shamteam/TsmEvents.lua ]]--
 do
 do
@@ -2915,6 +3210,10 @@ do
 
         tfm.exec.setPlayerScore(pn, 0)
 
+        if player:isToggleSet(OPT_GUI) then
+            TsmWindow.open(WINDOW_GUI, pn)
+        end
+
         if pL.room:len() == 2 and ThisRound:isReady() and ThisRound.is_lobby and module_started then
             -- reload lobby
             TsmRotation.doLobby()
@@ -2925,12 +3224,12 @@ do
         if not ThisRound.is_lobby then
             if pL.alive:len() == 0 then
                 Events.doEvent("TimesUp", elapsed)
-            elseif players[pn]:isShaman() then
+            elseif ThisRound:isShaman(pn) then
                 tfm.exec.setGameTime(20)
             elseif pL.alive:len() <= 2 then
                 local aliveAreShams = true
                 for name in pL.alive:pairs() do
-                    if not players[name]:isShaman() then
+                    if not ThisRound:isShaman(name) then
                         aliveAreShams = false
                         break
                     end
@@ -2970,54 +3269,14 @@ do
 
         if ThisRound.is_lobby then
             ThisRound:onLobby()
-            tfm.exec.disableAfkDeath(true)
-            tfm.exec.disableMortCommand(true)
-            tfm.exec.disablePrespawnPreview(false)
         else
             ThisRound:onNew()
-
-            for name, player in pairs(players) do
-                local shamanstr = pnDisp(ThisRound.shamans[1])
-                if ThisRound.shamans[2] then
-                    shamanstr = shamanstr .. " - " .. pnDisp(ThisRound.shamans[2])
-                end
-                local t_str = {
-                    player:tlFmt("map_info", ThisRound.mapcode, ThisRound.original_author or ThisRound.author, ThisRound.difficulty,
-                            ThisRound.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
-                    player:tlFmt("shaman_info", shamanstr)
-                }
-                local propstr = player:tlFmt("windgrav_info", ThisRound.wind, ThisRound.gravity)
-                local props = { }
-                if ThisRound.portals then
-                    props[#props+1] = player:tlFmt("portals")
-                end
-                if ThisRound.no_balloon then
-                    props[#props+1] = player:tlFmt("no_balloon")
-                end
-                if ThisRound.opportunist then
-                    props[#props+1] = player:tlFmt("opportunist")
-                end
-                if #props > 0 then
-                    propstr = propstr .. " <G>| <VP>" .. table.concat(props, " <G>| <VP>")
-                end
-                t_str[#t_str+1] = propstr
-                player:chatMsg(table.concat(t_str, "\n"))
-            end
-            
-            tfm.exec.disableAfkDeath(false)
-            tfm.exec.disableMortCommand(false)
-            tfm.exec.disablePrespawnPreview(ThisRound.mods[MOD_TELEPATHY])
         end
     end)
 
     Events.hookEvent("TimesUp", function(elapsed)
         if not module_started then return end
         ThisRound:onEnd()
-        if ThisRound.is_lobby then
-            TsmRotation.doRotate()
-        else
-            TsmRotation.doLobby()
-        end
     end)
 
     Events.hookEvent("Loop", function(elapsed, remaining)
@@ -3143,6 +3402,318 @@ TsmRotation.doRotate = function()
 end
 end
 --[[ end of module/shamteam/TsmRotation.lua ]]--
+--[[ module/shamteam/TsmWindow.lua ]]--
+do
+do
+    TsmWindow = {}
+    local INDEPENDENT = 1  -- window is able to stay open regardless of other open windows
+    local MUTUALLY_EXCLUSIVE = 2  -- window will close other mutually exclusive windows that are open
+
+    local help_ta_range = {
+        ['Welcome'] = {WINDOW_HELP+21, WINDOW_HELP+22},
+        ['Rules'] = {WINDOW_HELP+31, WINDOW_HELP+32},
+        ['Commands'] = {WINDOW_HELP+41, WINDOW_HELP+42},
+        ['Contributors'] = {WINDOW_HELP+51, WINDOW_HELP+52},
+    }
+    -- WARNING: No error checking, ensure that all your windows have all the required attributes (open, close, type, players)
+    local windows = {
+        [WINDOW_GUI] = {
+            open = function(pn, p_data, tab)
+                local T = {{"event:help!Welcome","?"},{"event:options","O"},{"event:profile","P"}}
+                local x, y = 800-(30*(#T+1)), 25
+                for i,m in ipairs(T) do
+                    ui.addTextArea(WINDOW_GUI+i,"<p align='center'><a href='"..m[1].."'>"..m[2], pn, x+(i*30), y, 20, 0, 1, 0, .7, true)
+                end
+            end,
+            close = function(pn, p_data)
+                for i = 1, 3 do
+                    ui.removeTextArea(WINDOW_GUI+i, pn)
+                end
+            end,
+            type = INDEPENDENT,
+            players = {}
+        },
+        [WINDOW_HELP] = {
+            open = function(pn, p_data, tab)
+                local tabs = {
+                    {'Welcome', 'help_tab_welcome'},
+                    {'Rules', 'help_tab_rules'},
+                    {'Commands', 'help_tab_commands'},
+                    {'Contributors', 'help_tab_contributors'},
+                    {'Close', 'close'}
+                }
+                local tabs_k = {['Welcome']=true,['Rules']=true,['Commands']=true,['Contributors']=true}
+                tab = tab or 'Welcome'
+
+                if not tabs_k[tab] then return end
+                if not p_data.tab then
+                    ui.addTextArea(WINDOW_HELP+1,"",pn,75,40,650,340,0x133337,0x133337,1,true)  -- the background
+                else  -- already opened before
+                    if help_ta_range[p_data.tab] then
+                        for i = help_ta_range[p_data.tab][1], help_ta_range[p_data.tab][2] do
+                            ui.removeTextArea(i, pn)
+                        end
+                    end
+                    if p_data.images[p_data.tab] then
+                        for i = 1, #p_data.images[p_data.tab] do
+                            tfm.exec.removeImage(p_data.images[p_data.tab][i])
+                        end
+                        p_data.images[p_data.tab] = nil
+                    end
+                end
+                for i, v in pairs(tabs) do
+                    local iden, tl_key = v[1], v[2]
+                    local translated = players[pn]:tlFmt(tl_key)
+                    local opacity = (iden == tab) and 0 or 1 
+                    ui.addTextArea(WINDOW_HELP+1+i, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:help!"..iden.."'>"..translated.."\n</a>",pn,92+((i-1)*130),50,100,24,0x666666,0x676767,opacity,true)
+                end
+                p_data.tab = tab
+
+                if tab == "Welcome" then
+                    local text = players[pn]:tlFmt("help_content_welcome", GUI_BTN, LINK_DISCORD)
+                    ui.addTextArea(WINDOW_HELP+21,text,pn,88,95,625,nil,0,0,0,true)
+                elseif tab == "Rules" then
+                    local text = players[pn]:tlFmt("help_content_rules")
+                    ui.addTextArea(WINDOW_HELP+31,text,pn,88,95,625,nil,0,0,0,true)
+                elseif tab == "Commands" then
+                    local text = players[pn]:tlFmt("help_content_commands")
+                    ui.addTextArea(WINDOW_HELP+41,text,pn,88,95,625,nil,0,0,0,true)
+                elseif tab == "Contributors" then
+                    local text = players[pn]:tlFmt("help_content_contributors")
+                    ui.addTextArea(WINDOW_HELP+51,text,pn,88,95,625,nil,0,0,0,true)
+                    --local img_id = tfm.exec.addImage("172cde7e326.png", "&1", 571, 180, pn)
+                    --p_data.images[tab] = {img_id}
+                end
+            end,
+            close = function(pn, p_data)
+                for i = 1, 10 do
+                    ui.removeTextArea(WINDOW_HELP+i, pn)
+                end
+                if help_ta_range[p_data.tab] then
+                    for i = help_ta_range[p_data.tab][1], help_ta_range[p_data.tab][2] do
+                        ui.removeTextArea(i, pn)
+                    end
+                end
+                if p_data.images[p_data.tab] then
+                    for i = 1, #p_data.images[p_data.tab] do
+                        tfm.exec.removeImage(p_data.images[p_data.tab][i])
+                    end
+                    p_data.images[p_data.tab] = nil
+                end
+                p_data.tab = nil
+            end,
+            type = MUTUALLY_EXCLUSIVE,
+            players = {}
+        },
+        [WINDOW_LOBBY] = {
+            open = function(pn, p_data)
+                p_data.images = { main={}, mode={}, help={}, toggle={} }
+
+                --ui.addTextArea(WINDOW_LOBBY+1,"",pn,75,40,650,340,1,0,.8,true)  -- the background
+                local header = pL.shaman[pn] and "You’ve been chosen to pair up for the next round!" or "Every second, 320 baguettes are eaten in France!"
+                ui.addTextArea(WINDOW_LOBBY+2,"<p align='center'><font size='13'>"..header,pn,75,50,650,nil,1,0,1,true)
+                p_data.images.main[1] = {tfm.exec.addImage(IMG_LOBBY_BG, ":"..WINDOW_LOBBY, 70, 40, pn)}
+
+                -- shaman cards
+                --ui.addTextArea(WINDOW_LOBBY+3,"",pn,120,85,265,200,0xcdcdcd,0xbababa,.1,true)
+                --ui.addTextArea(WINDOW_LOBBY+4,"",pn,415,85,265,200,0xcdcdcd,0xbababa,.1,true)
+                ui.addTextArea(WINDOW_LOBBY+5,"<p align='center'><font size='13'><b>"..pDisp(roundv.shamans[1]),pn,118,90,269,nil,1,0,1,true)
+                ui.addTextArea(WINDOW_LOBBY+6,"<p align='center'><font size='13'><b>"..pDisp(roundv.shamans[2]),pn,413,90,269,nil,1,0,1,true)
+
+                -- mode
+                p_data.images.mode[TSM_HARD] = {tfm.exec.addImage(roundv.mode == TSM_HARD and IMG_FEATHER_HARD or IMG_FEATHER_HARD_DISABLED, ":"..WINDOW_LOBBY, 202, 125, pn), 202, 125}
+                p_data.images.mode[TSM_DIV] = {tfm.exec.addImage(roundv.mode == TSM_DIV and IMG_FEATHER_DIVINE or IMG_FEATHER_DIVINE_DISABLED, ":"..WINDOW_LOBBY, 272, 125, pn), 272, 125}
+
+                ui.addTextArea(WINDOW_LOBBY+20, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_HARD), pn, 202, 125, 35, 40, 1, 0, 0, true)
+                ui.addTextArea(WINDOW_LOBBY+21, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_DIV), pn, 272, 125, 35, 40, 1, 0, 0, true)
+
+                -- difficulty
+                ui.addTextArea(WINDOW_LOBBY+7,"<p align='center'><font size='13'><b>Difficulty",pn,120,184,265,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+8,"<p align='center'><font size='13'>to",pn,240,240,30,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..roundv.diff1,pn,190,240,20,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+10,"<p align='center'><font size='13'><b>"..roundv.diff2,pn,299,240,20,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+11,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!1&1'>&#x25B2;</a><br><a href='event:setdiff!1&-1'>&#x25BC;",pn,132,224,20,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+12,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!2&1'>&#x25B2;</a><br><a href='event:setdiff!2&-1'>&#x25BC;",pn,350,224,20,nil,1,0,0,true)
+
+                -- mods
+                local mods_str = {}
+                local mods_helplink_str = {}
+                local i = 1
+                for k, mod in pairs(mods) do
+                    mods_str[#mods_str+1] = string.format("<a href='event:modtoggle!%s'>%s", k, mod[1])
+                    local is_set = roundv.mods:isset(k)
+                    local x, y = 640, 120+((i-1)*25)
+                    p_data.images.toggle[k] = {tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_LOBBY, x, y, pn), x, y}
+                    --ui.addTextArea(WINDOW_LOBBY+80+i,string.format("<a href='event:modtoggle!%s'><font size='15'> <br>", k),pn,x-2,y+3,35,18,1,0xfffff,0,true)
+                    
+                    x = 425
+                    y = 125+((i-1)*25)
+                    p_data.images.help[k] = {tfm.exec.addImage(IMG_HELP, ":"..WINDOW_LOBBY, x, y, pn), x, y}
+                    mods_helplink_str[#mods_helplink_str+1] = string.format("<a href='event:modhelp!%s'>", k)
+
+                    i = i+1
+                end
+                ui.addTextArea(WINDOW_LOBBY+14, table.concat(mods_str, "\n\n").."\n", pn,450,125,223,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+15, "<font size='11'>"..table.concat(mods_helplink_str, "\n\n").."\n", pn,422,123,23,nil,1,0,0,true)
+
+                -- help and xp multiplier text
+                ui.addTextArea(WINDOW_LOBBY+16,"<p align='center'><i><J>",pn,120,300,560,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+17,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(GetExpMult()),pn,330,333,140,nil,1,0,0,true)
+
+                -- ready
+                ui.addTextArea(WINDOW_LOBBY+18, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,200,340,100,24,0x666666,0x676767,1,true)
+                ui.addTextArea(WINDOW_LOBBY+19, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,500,340,100,24,0x666666,0x676767,1,true)
+            end,
+            close = function(pn, p_data)
+                for i = 1, 21 do
+                    ui.removeTextArea(WINDOW_LOBBY+i, pn)
+                end
+                for _, imgs in pairs(p_data.images) do
+                    for k, img_dat in pairs(imgs) do
+                        tfm.exec.removeImage(img_dat[1])
+                    end
+                end
+                p_data.images = {}
+            end,
+            type = INDEPENDENT,
+            players = {}
+        },
+        [WINDOW_OPTIONS] = {
+            open = function(pn, p_data)
+                p_data.images = { main={}, toggle={}, help={} }
+
+                p_data.images.main[1] = {tfm.exec.addImage(IMG_OPTIONS_BG, ":"..WINDOW_OPTIONS, 520, 47, pn)}
+                ui.addTextArea(WINDOW_OPTIONS+1, "<font size='3'><br><p align='center'><font size='13'><J><b>Settings", pn, 588,52, 102,30, 1, 0, 0, true)
+                ui.addTextArea(WINDOW_OPTIONS+2, "<a href='event:options!close'><font size='30'>\n", pn, 716,48, 31,31, 1, 0, 0, true)
+
+                local opts_str = {}
+                local opts_helplink_str = {}
+                local i = 1
+                for k, opt in pairs(options) do
+                    opts_str[#opts_str+1] = string.format("<a href='event:opttoggle!%s'>%s", k, opt[1])
+                    local is_set = playerData[pn]:getToggle(k)
+                    local x, y = 716, 100+((i-1)*25)
+                    p_data.images.toggle[k] = {tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_OPTIONS, x, y, pn), x, y}
+                    
+                    x = 540
+                    y = 105+((i-1)*25)
+                    p_data.images.help[k] = {tfm.exec.addImage(IMG_HELP, ":"..WINDOW_OPTIONS, x, y, pn), x, y}
+                    opts_helplink_str[#opts_helplink_str+1] = string.format("<a href='event:opthelp!%s'>", k)
+
+                    i = i+1
+                end
+                ui.addTextArea(WINDOW_OPTIONS+3, table.concat(opts_str, "\n\n").."\n", pn,560,105,223,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_OPTIONS+4, "<font size='11'>"..table.concat(opts_helplink_str, "\n\n").."\n", pn,540,103,23,nil,1,0,0,true)
+            end,
+            close = function(pn, p_data)
+                for i = 1, 5 do
+                    ui.removeTextArea(WINDOW_OPTIONS+i, pn)
+                end
+                for _, imgs in pairs(p_data.images) do
+                    for k, img_dat in pairs(imgs) do
+                        tfm.exec.removeImage(img_dat[1])
+                    end
+                end
+                p_data.images = {}
+            end,
+            type = MUTUALLY_EXCLUSIVE,
+            players = {}
+        },
+        [WINDOW_DB_MAP] = {
+            open = function(pn, p_data)
+                local tabs = {"Add", "Remove", "&#9587; Close"}
+                local tabstr = "<p align='center'><V>"..string.rep("&#x2500;", 6).."<br>"
+                local t_str = {"<p align='center'><font size='15'>Modify map</font><br>"}
+
+                for i = 1, #tabs do
+                    local t = tabs[i]
+                    local col = GUI_BTN
+                    tabstr = tabstr..string.format("%s<a href='event:dbmap!%s'>%s</a><br><V>%s<br>", col, t, t, string.rep("&#x2500;", 6))
+                end
+
+                t_str[#t_str+1] = "<ROSE>@"..roundv.mapinfo.code.."<br><V>"..string.rep("&#x2500;", 15).."</p><p align='left'><br>"
+                
+
+                ui.addTextArea(WINDOW_DB_MAP+1, tabstr, pn, 170, 60, 70, nil, 1, 0, .8, true)
+	            ui.addTextArea(WINDOW_DB_MAP+2, table.concat(t_str), pn, 250, 50, 300, 300, 1, 0, .8, true)
+            end,
+            close = function(pn, p_data)
+                for i = 1, 2 do
+                    ui.removeTextArea(WINDOW_DB_MAP+i, pn)
+                end
+            end,
+            type = INDEPENDENT,
+            players = {}
+        },
+        [WINDOW_DB_HISTORY] = {
+            open = function(pn, p_data)
+                ui.addTextArea(WINDOW_DB_HISTORY+1,"",pn,75,40,650,340,0x133337,0x133337,1,true)  -- the background
+            end,
+            close = function(pn, p_data)
+                for i = 1, 5 do
+                    ui.removeTextArea(WINDOW_DB_HISTORY+i, pn)
+                end
+            end,
+            type = INDEPENDENT,
+            players = {}
+        },
+    }
+
+    TsmWindow.open = function(window_id, pn, ...)
+        if not windows[window_id] then
+            return
+        elseif not pn then
+            for name in pairs(room.playerList) do
+                TsmWindow.open(window_id, name, table.unpack(arg))
+            end
+            return
+        elseif not windows[window_id].players[pn] then
+            windows[window_id].players[pn] = {images={}}
+        end
+        if windows[window_id].type == MUTUALLY_EXCLUSIVE then
+            for w_id, w in pairs(windows) do
+                if w_id ~= window_id and w.type == MUTUALLY_EXCLUSIVE then
+                    TsmWindow.close(w_id, pn)
+                end
+            end
+        end
+        windows[window_id].players[pn].is_open = true
+        windows[window_id].open(pn, windows[window_id].players[pn], table.unpack(arg))
+    end
+
+    TsmWindow.close = function(window_id, pn)
+        if not pn then
+            for name in pairs(room.playerList) do
+                TsmWindow.close(window_id, name)
+            end
+        elseif TsmWindow.isOpened(window_id, pn) then
+            windows[window_id].close(pn, windows[window_id].players[pn])
+            windows[window_id].players[pn].is_open = false
+        end
+    end
+
+    -- Hook this on to eventPlayerLeft, where all of the player's windows would be closed
+    TsmWindow.clearPlayer = function(pn)
+        for w_id in pairs(windows) do
+            windows[w_id].players[pn] = nil
+        end
+    end
+
+    TsmWindow.isOpened = function(window_id, pn)
+        return windows[window_id]
+            and windows[window_id].players[pn]
+            and windows[window_id].players[pn].is_open
+    end
+
+    TsmWindow.getImages = function(window_id, pn)
+        if TsmWindow.isOpened(window_id, pn) then
+            return windows[window_id].players[pn].images
+        end
+        return {}
+    end 
+end
+end
+--[[ end of module/shamteam/TsmWindow.lua ]]--
 --[[ module/shamteam/TsmInit.lua ]]--
 do
 local IsOfficialRoom = function(name)
@@ -3163,6 +3734,10 @@ init_ext = function()
     end
     system.disableChatCommandDisplay(nil,true)
     is_official_room = IsOfficialRoom(room.name)
+    
+end
+
+postinit_ext = function()
     TsmRotation.doLobby()
     MDHelper.trySync()
 end
@@ -3172,8 +3747,6 @@ end
 end
 
 
-
-callbacks = {}
 
 ----- EVENTS
 function eventChatCommand(pn, msg)
@@ -3286,12 +3859,16 @@ local init = function()
     
     
 
+    if type(init_ext) == "function" then
+        init_ext()
+    end
+
     for name in pairs(room.playerList) do eventNewPlayer(name) end
     tfm.exec.setRoomMaxPlayers(DEFAULT_MAX_PLAYERS)
     tfm.exec.setRoomPassword("")
 
-    if type(init_ext) == "function" then
-        init_ext()
+    if type(postinit_ext) == "function" then
+        postinit_ext()
     end
 end
 

@@ -4,8 +4,11 @@
 @include libs/db2.lua
 @include libs/XMLParse.lua
 
+local DEFAULT_MAX_PLAYERS = 50
+
 -- Init extension
 local init_ext = nil
+local postinit_ext = nil
 
 -- Cached variable lookups
 local room = tfm.get.room
@@ -51,6 +54,7 @@ local keys, callbacks
 @include module/Common.lua
 @include module/Commands.lua
 @include module/Keys.lua
+@include module/Callbacks.lua
 @include module/Events.lua
 @include module/Player.lua
 
@@ -72,8 +76,6 @@ end
 @divinclude module/divinity/DivPlayer.lua
 @divinclude module/divinity/DivRound.lua
 @divinclude module/divinity/DivEvents.lua
-
-callbacks = {}
 
 ----- EVENTS
 function eventChatCommand(pn, msg)
@@ -186,12 +188,16 @@ local init = function()
     @spinclude module/spiritual/init_ext.lua
     @divinclude module/divinity/init_ext.lua
 
+    if type(init_ext) == "function" then
+        init_ext()
+    end
+
     for name in pairs(room.playerList) do eventNewPlayer(name) end
     tfm.exec.setRoomMaxPlayers(DEFAULT_MAX_PLAYERS)
     tfm.exec.setRoomPassword("")
 
-    if type(init_ext) == "function" then
-        init_ext()
+    if type(postinit_ext) == "function" then
+        postinit_ext()
     end
 end
 

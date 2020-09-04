@@ -14,16 +14,12 @@ do
 
     Player.tlFmt = function(self, kname, ...)
         local str = translations[self.lang][kname]
+        if not str then return kname end
         return string.format(str, ...)
     end
 
     Player.tlChatMsg = function(self, kname, ...)
-        local str = translations[self.lang][kname]
-        return tfm.exec.chatMessage(string.format(str, ...), self.name)
-    end
-
-    Player.isShaman = function(self)
-        return room.playerList[self.name].isShaman
+        return tfm.exec.chatMessage(self:tlFmt(kname, ...), self.name)
     end
 
     -- Base data for this class, to be used in inherited new() methods

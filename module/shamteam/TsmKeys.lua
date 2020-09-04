@@ -1,10 +1,10 @@
 keys[71] = {
     func = function(pn, enable) -- g (display GUI for shamans)
-        if not roundv.lobby and pL.shaman[pn] then
+        if not ThisRound.is_lobby and ThisRound:isShaman(pn) then
             if enable then
-                sWindow.open(WINDOW_GUI, pn)
+                TsmWindow.open(WINDOW_GUI, pn)
             else
-                sWindow.close(WINDOW_GUI, pn)
+                TsmWindow.close(WINDOW_GUI, pn)
             end
         end
     end,
@@ -13,10 +13,10 @@ keys[71] = {
 
 keys[72] = {
     func = function(pn) -- h (display help)
-        if sWindow.isOpened(WINDOW_HELP, pn) then
-            sWindow.close(WINDOW_HELP, pn)
+        if TsmWindow.isOpened(WINDOW_HELP, pn) then
+            TsmWindow.close(WINDOW_HELP, pn)
         else
-            sWindow.open(WINDOW_HELP, pn)
+            TsmWindow.open(WINDOW_HELP, pn)
         end
     end,
     trigger = DOWN_ONLY
@@ -24,10 +24,10 @@ keys[72] = {
 
 keys[79] = {
     func = function(pn) -- o (display player options)
-        if sWindow.isOpened(WINDOW_OPTIONS, pn) then
-            sWindow.close(WINDOW_OPTIONS, pn)
+        if TsmWindow.isOpened(WINDOW_OPTIONS, pn) then
+            TsmWindow.close(WINDOW_OPTIONS, pn)
         else
-            sWindow.open(WINDOW_OPTIONS, pn)
+            TsmWindow.open(WINDOW_OPTIONS, pn)
         end
     end,
     trigger = DOWN_ONLY

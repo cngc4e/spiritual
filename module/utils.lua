@@ -50,16 +50,6 @@ local function int_mapcode(code)
     end
 end
 
-local function tl(pn, kname)
-    local pref_lang = players[pn] and players[pn].lang or "en"
-    local lang = translations[pref_lang] and pref_lang or "en"
-    if translations[lang][kname] then
-        return translations[lang][kname]
-    else
-        return kname
-    end
-end
-
 local function ZeroTag(pn, add) --#0000 removed for tag matches
     if add then
         if not pn:find('#') then

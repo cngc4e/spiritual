@@ -101,7 +101,7 @@ do
                 if found then
                     return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." already exists in the database."
                 end
-                maps[#maps+1] = {code=self.mapcode, difficulty=0, completed=0, rounds=0}
+                maps[#maps+1] = {code=self.mapcode, difficulty_hard=0, difficulty_divine=0, completed_hard=0, rounds_hard=0, completed_divine=0, rounds_divine=0}
                 return MDHelper.MERGE_OK, "@"..self.mapcode.." successfully added."
             end,
             logobject = function(self)
@@ -461,5 +461,5 @@ do
     end
     
     MDHelper.init(FILE_NUMBER, MD_SCHEMA,
-            LATEST_MD_VER, operations, DEFAULT_DB, pre_compute)
+            LATEST_MD_VER, operations, DEFAULT_DB, is_official_room, pre_compute)
 end

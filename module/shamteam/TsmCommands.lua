@@ -29,9 +29,9 @@ do
             func = function(pn)
                 local managers = {}
                 for name in pairs(DEVS) do managers[#managers+1] = name end
-                for name in pairs(SpCommon.MANAGERS) do managers[#managers+1] = name end
+                for name in pairs(MODULE_MANAGERS) do managers[#managers+1] = name end
                 players[pn]:chatMsgFmt("Team managers:\n%s", table.concat(managers, " "))
-                local list = SpModuleData.getTable("staff")
+                local list = TsmModuleData.getTable("staff")
                 players[pn]:chatMsgFmt("\nStaff:\n%s", table.concat(list, " "))
             end
         },
@@ -42,7 +42,7 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = SpModuleData.commit(pn, SpModuleData.ADD_STAFF, target)
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.ADD_STAFF, target)
                 if status == MDHelper.MERGE_OK then
                     players[pn]:chatMsgFmt("%s will be given Staff rights.", target)
                 else
@@ -57,7 +57,7 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = SpModuleData.commit(pn, SpModuleData.REMOVE_STAFF, target)
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.REMOVE_STAFF, target)
                 if status == MDHelper.MERGE_OK then
                     players[pn]:chatMsgFmt("%s will be revoked of Staff rights.", target)
                 else
@@ -77,17 +77,18 @@ do
                     map = function(action, p1)
                         local actions = {
                             info = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
                                 end
-                                local info = string.format("Mapcode: @%s\nDifficulty: %s\nCompletion: %s / %s",
-                                        map.code, map.difficulty, map.completed, map.rounds)
+                                local info = string.format("Mapcode: @%s\nDifficulty: %s, %s\nCompletion: %s / %s, %s / %s",
+                                        map.code, map.difficulty_hard, map.difficulty_divine,
+                                        map.completed_hard, map.rounds_hard, map.completed_divine, map.rounds_divine)
                                 tfm.exec.chatMessage(info, pn)
                             end,
-                            diff = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                            diffh = function()
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
@@ -97,35 +98,59 @@ do
                                     tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_UPDATE_MAP_DIFF, map.code, diff)
-                                tfm.exec.chatMessage("Difficulty of @"..map.code.." will be changed to "..p1, pn)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_UPDATE_MAP_DIFF_HARD, map.code, diff)
+                                tfm.exec.chatMessage("THM Difficulty of @"..map.code.." will be changed to "..p1, pn)
+                            end,
+                            diffd = function()
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
+                                if not map then
+                                    tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
+                                    return
+                                end
+                                local diff = tonumber(p1)
+                                if not diff then
+                                    tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
+                                    return
+                                end
+                                TsmModuleData.commit(pn, TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE, map.code, diff)
+                                tfm.exec.chatMessage("TDM Difficulty of @"..map.code.." will be changed to "..p1, pn)
                             end,
                             add = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if map then
                                     tfm.exec.chatMessage("<R>This map is already in rotation.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_ADD_MAP, ThisRound.mapcode)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_ADD_MAP, ThisRound.mapcode)
                                 tfm.exec.chatMessage("Adding @"..ThisRound.mapcode, pn)
                             end,
                             remove = function()
-                                local map = SpModuleData.getMapInfo(ThisRound.mapcode)
+                                local map = TsmModuleData.getMapInfo(ThisRound.mapcode)
                                 if not map then
                                     tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
                                     return
                                 end
-                                SpModuleData.commit(pn, SpModuleData.OP_REMOVE_MAP, map.code)
+                                TsmModuleData.commit(pn, TsmModuleData.OP_REMOVE_MAP, map.code)
                                 tfm.exec.chatMessage("Removing @"..map.code, pn)
                             end,
-                            list = function()
+                            listh = function()
                                 local diff = tonumber(p1)
                                 if not diff then
                                     tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
                                     return
                                 end
-                                local list = SpModuleData.getMapcodesByDiff(diff)
-                                players[pn]:chatMsgFmt("Difficulty %s:\n%s",
+                                local list = TsmModuleData.getMapcodesByDiff(TSM_HARD, diff)
+                                players[pn]:chatMsgFmt("THM Difficulty %s:\n%s",
+                                        diff, table.concat(list, " "))
+                            end,
+                            listd = function()
+                                local diff = tonumber(p1)
+                                if not diff then
+                                    tfm.exec.chatMessage("<R>Specify a valid difficulty number.", pn)
+                                    return
+                                end
+                                local list = TsmModuleData.getMapcodesByDiff(TSM_DIV, diff)
+                                players[pn]:chatMsgFmt("TDM Difficulty %s:\n%s",
                                         diff, table.concat(list, " "))
                             end,
                         }

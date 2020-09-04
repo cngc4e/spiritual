@@ -13,6 +13,7 @@ do
     local file_id = nil
     local latest_schema_version = nil
     local file_parse_callback = nil
+    local is_nor = false
     local inited = false
 
     local MODULE_LOG_OP = {
@@ -64,7 +65,7 @@ do
                     MDHelper.commit(nil, MDHelper.OP_ADD_MODULE_LOG, pn, op_id, logobj)
                 end
                 -- don't schedule and sync commit if the operation specifies to be passive in non-official rooms
-                if is_official_room or not op_mt.PASSIVE_ON_NOR then
+                if is_nor or not op_mt.PASSIVE_ON_NOR then
                     -- Schedule the commit to be done again during the next syncing
                     db_commits[#db_commits+1] = { op_mt, pn }
                 end
@@ -148,13 +149,14 @@ do
         end
     end
 
-    MDHelper.init = function(fid, schms, latest, ops, default_db, parsed_cb)
+    MDHelper.init = function(fid, schms, latest, ops, default_db, nor, parsed_cb)
         file_id = fid
         schema = schms
         latest_schema_version = latest
         operations = ops
         operations[MDHelper.OP_ADD_MODULE_LOG] = MODULE_LOG_OP
         db_cache = default_db
+        is_nor = nor
         file_parse_callback = parsed_cb
         inited = true
     end
