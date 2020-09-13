@@ -9,6 +9,7 @@ do
 
     Events.hookEvent("Loop", function(elapsed, remaining)
         MDHelper.trySync()
+        PDHelper.onLoop()
     end)
 
     Events.hookEvent("FileLoaded", function(file, data)
@@ -20,5 +21,9 @@ do
 
     Events.hookEvent("FileSaved", function(file)
         MDHelper.eventFileSaved(file)
+    end)
+
+    Events.hookEvent("PlayerDataLoaded", function(pn, data)
+        PDHelper.onPdLoaded(pn, data)
     end)
 end

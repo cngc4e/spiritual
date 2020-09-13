@@ -16,6 +16,7 @@ local TsmWindow
 
 @includescp module/shamteam/TsmPlayer.lua
 @includescp module/shamteam/TsmModuleData.lua
+@includescp module/shamteam/TsmPlayerDataInit.lua
 @includescp module/shamteam/TsmRound.lua
 @includescp module/shamteam/TsmCommands.lua
 @includescp module/shamteam/TsmKeys.lua

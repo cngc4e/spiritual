@@ -1,5 +1,5 @@
 -- Player data helper
-local PDHelper
+local PDHelper = {}
 do
     -- Global player data structure - SHARED ACROSS MODULES; DO NOT CHANGE
     local GLOBAL_PD_SCHEMA = {
@@ -9,138 +9,106 @@ do
         }}},
     }
 
-    -- Nested module-specific player data structure
-    local MODULE_PD_SCHEMA = {
-        [1] = {
-            VERSION = 1,
-            db2.UnsignedInt{ key="exp", size=7 },  -- experience points
-            db2.UnsignedInt{ key="toggles", size=4 },  -- player options bit set (togglebles)
-        }
-    }
-    local LATEST_PD_VER = 1
-    local SAVE_PD_WAITTIME = 5000  -- in milliseconds, minimum waiting time for saving player data when saving is requested via md.scheduleSave
+    local LOAD_PD_TICKS = 2
 
-    local save_at = {}
-    local PDOps = {}
+    local noSaveFile = false
+    local moduleId = nil
+    local mdSchema = nil
+    local schemaVer = nil
+    local defaultData = nil
+    local updateCallback = nil
+    local loadPdTicksNow = 0
+    local scheduledSaves = {}  -- [pn] = func(mdpd_data)[]
 
-    ----- Player data methods
-    --- Module specific
-    local function set_toggle(self, toggle_id, on)
-        if on == nil then on = true end
-        local pd = self.module_pd
-        local b_toggle = bitset.new(pd.toggles)
-        if on then
-            pd.toggles = b_toggle:set(toggle_id):tonumber()
-        else
-            pd.toggles = b_toggle:unset(toggle_id):tonumber()
-        end
-    end
-
-    local function flip_toggle(self, toggle_id)
-        local pd = self.module_pd
-        pd.toggles = bitset.new(pd.toggles):flip(toggle_id):tonumber()
-    end
-
-    local function get_toggle(self, toggle_id)
-        local pd = self.module_pd
-        return bitset.new(pd.toggles):isset(toggle_id)
-    end
-
-    --- Saving / Loading
-    local schedule_save = function(self)
-        local pn = self.pn
-        if not save_at[pn] then
-            save_at[pn] = os.time() + SAVE_PD_WAITTIME
-        end
-    end
-
-    local save_now = function(self)
-        if not is_official_room then return end
-        local global_pd = self.global_pd
-        local pn = self.pn
-        local modules = global_pd.modules
-        local found = nil
-        for i = 1, #modules do
-            if modules[i].id == MODULE_ID then
-                found = modules[i]
-                break
+    local updatePd = function(pn, mpdata)
+        local s = scheduledSaves[pn]
+        if s then
+            for i = 1, #s do
+                s[i](mpdata)
             end
+            scheduledSaves[pn] = nil
+            return true
         end
-        local encoded_module_pd = db2.encode(MODULE_PD_SCHEMA[LATEST_PD_VER], self.module_pd)
-        if found then
-            -- Existing module specific player data, just update it
-            found.encoded = encoded_module_pd
-            print("save existing "..pn)
-        else
-            -- Initialise fresh module specific player data
-            modules[#modules+1] = {
-                id = MODULE_ID,
-                encoded = encoded_module_pd
-            }
-            print("save new "..pn)
-        end
-        local encoded_global_pd = db2.encode(GLOBAL_PD_SCHEMA, global_pd)
-        system.savePlayerData(pn, encoded_global_pd)
     end
 
-    local load_now = function(self, data)
-        local pn = self.pn
+    PDHelper.onPdLoaded = function(pn, data)
         local global_pd = db2.decode(GLOBAL_PD_SCHEMA, data)
         local modules = global_pd.modules
-        self.global_pd = global_pd
+        local module_index = -1
     
         local encoded_module_pd = nil
         for i = 1, #modules do
-            if modules[i].id == MODULE_ID then
+            if modules[i].id == moduleId then
                 encoded_module_pd = modules[i].encoded
+                module_index = i
                 break
             end
         end
+
+        local module_pd = nil
         if encoded_module_pd then
-            self.module_pd = db2.decode(MODULE_PD_SCHEMA, encoded_module_pd)
+            module_pd = db2.decode(mdSchema, encoded_module_pd)
             print("load existing "..pn)
+        else
+            module_pd = table_copy(defaultData)
+            print("load new "..pn)
+        end
+
+        local should_save = updatePd(pn, module_pd)
+
+        if updateCallback then
+            updateCallback(pn, module_pd)
+        end
+
+        -- Save it for real
+        if should_save and not noSaveFile then
+            encoded_module_pd = db2.encode(mdSchema[schemaVer], module_pd)
+            if module_index > 0 then
+                -- existing data
+                modules[module_index].encoded = encoded_module_pd
+            else
+                -- new data
+                modules[#modules+1] = {
+                    id = moduleId,
+                    encoded = encoded_module_pd
+                }
+            end
+            local encoded_global_pd = db2.encode(GLOBAL_PD_SCHEMA, global_pd)
+            system.savePlayerData(pn, encoded_global_pd)
         end
     end
 
-    ----- Helper methods
-    local new = function(pn, default_pd)
-        local data = {
-            pn = pn,
-            global_pd = {
-                modules = {}
-            },
-            module_pd = default_pd,
-        }
-        return setmetatable(data, PDOps)
-    end
-
-    local check_saves = function()
-        local now = os.time()
-        local yeetaway = { _len=0 }
-        for name, at in pairs(save_at) do
-            if now >= at then
-                save_now(playerData[name])
-                yeetaway[yeetaway._len + 1] = name
-                yeetaway._len = yeetaway._len + 1
+    PDHelper.onLoop = function()
+        if loadPdTicksNow >= LOAD_PD_TICKS then
+            loadPdTicksNow = 0
+        end
+        if loadPdTicksNow == 0 then
+            for name in pairs(scheduledSaves) do
+                system.loadPlayerData(name)
             end
         end
-        for i = 1, yeetaway._len do
-            save_at[yeetaway[i]] = nil
+        loadPdTicksNow = loadPdTicksNow + 1
+    end
+        
+
+    PDHelper.setScheduleSave = function(pn, update_func)
+        if not scheduledSaves[pn] then
+            scheduledSaves[pn] = {}
         end
+
+        local s = scheduledSaves[pn]
+        s[#s+1] = update_func
     end
 
-    PDOps = {
-        setToggle = set_toggle,
-        flipToggle = flip_toggle,
-        getToggle = get_toggle,
-        scheduleSave = schedule_save,
-        save = save_now,
-        load = load_now,
-    }
-    PDOps.__index = PDOps
-
-    PDHelper = {
-        new = new,
-        checkSaves = check_saves,
-    }
+    PDHelper.init = function(mod_id, schema, schema_version, default_data, update_callback, params)
+        params = params or {}
+        if params.NOSAVEFILE then
+            noSaveFile = true
+        end
+        moduleId = mod_id
+        mdSchema = schema
+        schemaVer = schema_version
+        defaultData = default_data
+        updateCallback = update_callback
+    end
 end

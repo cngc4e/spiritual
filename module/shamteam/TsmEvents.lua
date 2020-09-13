@@ -4,6 +4,8 @@ do
         local player = TsmPlayer:new(pn)
         players[pn] = player
 
+        system.loadPlayerData(pn)
+        
         player:tlChatMsg("welcome_message")
 
         if not is_official_room then
@@ -91,7 +93,7 @@ do
                     -- enable antilag
                     players[pn]:tlChatMsg("antilag_enabled")
                     players[pn].toggles[OPT_ANTILAG] = true
-                elseif ping >= ANTILAG_WARN_THRESHOLD and not playerData[pn]:getToggle(OPT_ANTILAG) then
+                elseif ping >= ANTILAG_WARN_THRESHOLD and not player[pn].toggles[OPT_ANTILAG] then
                     -- enable antilag if it isn't already so
                     players[pn]:tlChatMsg("antilag_warn")
                 end

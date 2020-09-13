@@ -48,6 +48,7 @@ local keys, callbacks
 @include helpers/map_sched.lua
 @include helpers/tfmcmd.lua
 @include helpers/MDHelper.lua
+@include helpers/PDHelper.lua
 @include helpers/TimedTask.lua
 @include helpers/Events.lua
 
@@ -184,6 +185,10 @@ end
 
 function eventFileSaved(file)
     Events.doEvent("FileSaved", file)
+end
+
+function eventPlayerDataLoaded(pn, data)
+    Events.doEvent("PlayerDataLoaded", pn, data)
 end
 
 local init = function()

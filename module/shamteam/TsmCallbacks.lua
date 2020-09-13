@@ -130,7 +130,7 @@ callbacks["opttoggle"] = function(pn, opt_id)
     if not opt_id or not PLAYER_OPTIONS[opt_id] then
         return
     end
-    players[pn].toggles:flip(opt_id)  -- flip and toggle the flag
+    players[pn]:flipTogglePersist(opt_id)  -- flip and toggle the flag
     
     local is_set = players[pn].toggles[opt_id]
 
@@ -155,9 +155,6 @@ callbacks["opttoggle"] = function(pn, opt_id)
     if opt_id == OPT_CIRCLE then
         players[pn]:updateCircle()
     end
-
-    -- Schedule saving
-    --playerData[pn]:scheduleSave()
 end
 
 callbacks["opthelp"] = function(pn, opt_id)
