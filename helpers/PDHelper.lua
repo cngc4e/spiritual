@@ -32,7 +32,13 @@ do
     end
 
     PDHelper.onPdLoaded = function(pn, data)
-        local global_pd = db2.decode(GLOBAL_PD_SCHEMA, data)
+        local global_pd = nil
+        if data == "" then
+            global_pd = {modules={}}
+        else
+            global_pd = db2.decode(GLOBAL_PD_SCHEMA, data)
+        end
+
         local modules = global_pd.modules
         local module_index = -1
     

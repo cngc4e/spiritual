@@ -193,6 +193,28 @@ do
                 Events.doEvent("TimesUp")
             end,
         },
+        tfmcmd.Main {
+            name = "roomlimit",
+            args = {
+                tfmcmd.ArgNumber { default = DEFAULT_MAX_PLAYERS, min = 1 },
+            },
+            allowed = LEVEL_STAFF,
+            func = function(pn, limit)
+                tfm.exec.setRoomMaxPlayers(limit)
+                players[pn]:chatMsg("Room limit set to "..limit..".")
+            end,
+        },
+        tfmcmd.Main {
+            name = "time",
+            args = {
+                tfmcmd.ArgNumber { },
+            },
+            allowed = LEVEL_STAFF,
+            func = function(pn, limit)
+                tfm.exec.setGameTime(limit)
+                players[pn]:chatMsg("Time limit set to "..limit..".")
+            end,
+        },
     }
 
     tfmcmd.setDefaultAllow(true)

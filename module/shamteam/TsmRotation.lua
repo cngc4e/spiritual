@@ -11,6 +11,7 @@ local awaiting_mode
 
 local chosen_mode
 local preferred_diff_range
+local chosen_mods
 
 local choose_map = function(mode, diff)
     local mapcodes = TsmModuleData.getMapcodesByDiff(mode, diff)
@@ -34,6 +35,10 @@ TsmRotation.setDiffRange = function(lower, upper)
         upper = lower
     end
     preferred_diff_range = {lower, upper}
+end
+
+TsmRotation.setMods = function(mods)
+    chosen_mods = mods
 end
 
 TsmRotation.doLobby = function()
@@ -69,18 +74,24 @@ TsmRotation.signalNgAndRead = function()
 
     local ret = {}
     ret.is_lobby = is_awaiting_lobby
-    is_awaiting_lobby = nil
+    ret.mods = chosen_mods
+
     if not is_awaiting_lobby then
         ret.difficulty = awaiting_diff
         ret.mode = awaiting_mode
         ret.is_custom_load = custom_map ~= nil
+        ret.mods = chosen_mods
 
-        awaiting_mapcode = nil
-        awaiting_diff = nil
-        chosen_mode = nil
         custom_map = nil
-        preferred_diff_range = nil
+        custom_mode = nil
     end
+
+    is_awaiting_lobby = nil
+    awaiting_mapcode = nil
+    awaiting_diff = nil
+    chosen_mode = nil
+    preferred_diff_range = nil
+    chosen_mods = nil
 
     return true, ret
 end

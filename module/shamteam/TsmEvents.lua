@@ -5,7 +5,7 @@ do
         players[pn] = player
 
         system.loadPlayerData(pn)
-        
+
         player:tlChatMsg("welcome_message")
 
         if not is_official_room then
@@ -18,7 +18,11 @@ do
             TsmWindow.open(WINDOW_GUI, pn)
         end
 
-        if pL.room:len() == 2 and ThisRound:isReady() and ThisRound.is_lobby and module_started then
+        if ThisRound.lobby_ready and ThisRound.phase < PHASE_TIMESUP then
+            TsmWindow.open(WINDOW_LOBBY, pn)
+        end
+
+        if pL.room:len() == 2 and ThisRound.lobby_ready and module_started then
             -- reload lobby
             TsmRotation.doLobby()
         end
@@ -93,7 +97,7 @@ do
                     -- enable antilag
                     players[pn]:tlChatMsg("antilag_enabled")
                     players[pn].toggles[OPT_ANTILAG] = true
-                elseif ping >= ANTILAG_WARN_THRESHOLD and not player[pn].toggles[OPT_ANTILAG] then
+                elseif ping >= ANTILAG_WARN_THRESHOLD and not players[pn].toggles[OPT_ANTILAG] then
                     -- enable antilag if it isn't already so
                     players[pn]:tlChatMsg("antilag_warn")
                 end

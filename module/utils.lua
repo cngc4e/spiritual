@@ -68,3 +68,11 @@ local function pFind(target, pn)
     end
     if pn then tfm.exec.chatMessage("<R>error: no such target", pn) end
 end
+
+local sendLongChatMessage = function(msg, pn)
+    local MAX_MSG_CHARS = 950
+    local times = math.ceil(#msg/MAX_MSG_CHARS)
+    for i = 0, times - 1 do
+        tfm.exec.chatMessage(msg:sub(#msg*(i/times)+1, #msg*((i+1)/times)), pn)
+    end
+end

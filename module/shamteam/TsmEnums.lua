@@ -51,9 +51,16 @@ local IMG_RANGE_CIRCLE = "172ef5c1de4.png" -- 240 x 240
 --- Link IDs
 local LINK_DISCORD = 1
 
+local LINKS = {
+    [LINK_DISCORD] = "https://discord.gg/YkzM4rh",
+}
+
 --- AntiLag ping (ms) thresholds
 local ANTILAG_WARN_THRESHOLD = 690
 local ANTILAG_FORCE_THRESHOLD = 1100
+
+--- Difficulty level
+local HIGHEST_DIFFICULTY = 5
 
 --- Shaman objects / summons
 local O_BTYPE_ARROW = 0
@@ -73,10 +80,10 @@ local MOD_SNAIL_NAIL = 4
 
 -- {name (localisation key), multiplier, description (localisation key)}
 local GAME_MODS = {
-    [MOD_TELEPATHY] = {"Telepathic Communication", 0.5, "Disables prespawn preview. You won't be able to see what and where your partner is trying to spawn."},
-    [MOD_WORK_FAST] = {"We Work Fast!", 0.3, "Reduces building time limit by 60 seconds. For the quick hands."},
-    [MOD_BUTTER_FINGERS] = {"Butter Fingers", -0.5, "Allows you and your partner to undo your last spawned object by pressing U up to two times."},
-    [MOD_SNAIL_NAIL] = {"Snail Nail", -0.5, "Increases building time limit by 30 seconds. More time for our nails to arrive."},
+    [MOD_TELEPATHY] = {"name_telepathy", 0.5, "desc_telepathy"},
+    [MOD_WORK_FAST] = {"name_work_fast", 0.3, "desc_work_fast"},
+    [MOD_BUTTER_FINGERS] = {"name_butter_fingers", -0.5, "desc_butter_fingers"},
+    [MOD_SNAIL_NAIL] = {"name_snail_nail", -0.5, "desc_snail_nail"},
 }
 
 --- OPTIONS

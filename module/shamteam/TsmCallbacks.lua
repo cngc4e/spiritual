@@ -22,21 +22,18 @@ end
 callbacks["link"] = function(pn, link_id)
     -- Do not print out raw text from players! Use predefined IDs instead.
     link_id = tonumber(link_id)
-    local links = {
-        [LINK_DISCORD] = "https://discord.gg/YkzM4rh",
-    }
-    if links[link_id] then
-        tfm.exec.chatMessage(links[link_id], pn)
+    if link_id and LINKS[link_id] then
+        players[pn]:chatMsg(LINKS[link_id])
     end
 end
 
 callbacks["setmode"] = function(pn, mode_id)
     mode_id = tonumber(mode_id) or -1
-    if not roundv.running or not roundv.lobby or (mode_id ~= TSM_HARD and mode_id ~= TSM_DIV)
-            or pn ~= roundv.shamans[1] then -- only shaman #1 gets to set mode
+    if not ThisRound.lobby_ready or (mode_id ~= TSM_HARD and mode_id ~= TSM_DIV)
+            or pn ~= ThisRound.shamans[1] then -- only shaman #1 gets to set mode
         return
     end
-    roundv.mode = mode_id
+    ThisRound.chosen_mode = mode_id
 
     for name in pL.room:pairs() do
         local imgs = TsmWindow.getImages(WINDOW_LOBBY, name)
@@ -58,54 +55,53 @@ end
 callbacks["setdiff"] = function(pn, id, add)
     id = tonumber(id) or 0
     add = tonumber(add) or 0
-    if not roundv.running or not roundv.lobby 
-            or pn ~= roundv.shamans[1] -- only shaman #1 gets to choose difficulty
+    if not ThisRound.lobby_ready
+            or pn ~= ThisRound.shamans[1] -- only shaman #1 gets to choose difficulty
             or (id ~= 1 and id ~= 2)
             or (add ~= -1 and add ~= 1) then
         return
     end
-    local diff_id = "diff"..id
-    local new_diff = roundv[diff_id] + add
+    local new_diff = ThisRound.chosen_diff[id] + add
 
-    if new_diff < 1 or new_diff > #mapcodes[roundv.mode]
-            or (id == 1 and roundv.diff2 - new_diff < 1)
-            or (id == 2 and new_diff - roundv.diff1 < 1) then  -- range error
-        tfm.exec.chatMessage(string.format("<R>error: range must have a value of 1-%s and have a difference of at least 1", #mapcodes[roundv.mode]), pn)
+    if new_diff < 1 or new_diff > HIGHEST_DIFFICULTY
+            or (id == 1 and ThisRound.chosen_diff[2] - new_diff < 1)
+            or (id == 2 and new_diff - ThisRound.chosen_diff[1] < 1) then  -- range error
+        players[pn]:errorTlChatMsg("diff_range_error", HIGHEST_DIFFICULTY)
         return
     end
 
-    roundv[diff_id] = new_diff
-    ui.updateTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..roundv.diff1)
-    ui.updateTextArea(WINDOW_LOBBY+10,"<p align='center'><font size='13'><b>"..roundv.diff2)
+    ThisRound.chosen_diff[id] = new_diff
+    ui.updateTextArea(WINDOW_LOBBY+8,"<p align='center'><font size='13'><b>"..ThisRound.chosen_diff[1])
+    ui.updateTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..ThisRound.chosen_diff[2])
 end
 
 callbacks["setready"] = function(pn)
-    if not roundv.running or not roundv.lobby then return end
-    if roundv.shamans[1] == pn then
-        local is_ready = not roundv.shaman_ready[1]
-        roundv.shaman_ready[1] = is_ready
+    if not ThisRound.lobby_ready then return end
+    if ThisRound.shamans[1] == pn then
+        local is_ready = not ThisRound.shaman_ready[1]
+        ThisRound.shaman_ready[1] = is_ready
 
         local blt = is_ready and "&#9745;" or "&#9744;";
-        ui.updateTextArea(WINDOW_LOBBY+18, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
-    elseif roundv.shamans[2] == pn then
-        local is_ready = not roundv.shaman_ready[2]
-        roundv.shaman_ready[2] = is_ready
+        ui.updateTextArea(WINDOW_LOBBY+16, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
+    elseif ThisRound.shamans[2] == pn then
+        local is_ready = not ThisRound.shaman_ready[2]
+        ThisRound.shaman_ready[2] = is_ready
 
         local blt = is_ready and "&#9745;" or "&#9744;";
-        ui.updateTextArea(WINDOW_LOBBY+19, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
+        ui.updateTextArea(WINDOW_LOBBY+17, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>"..blt.." Ready".."</a>")
     end
-    if roundv.shaman_ready[1] and roundv.shaman_ready[2] then
-        rotate_evt.timesup()
+    if ThisRound.shaman_ready[1] and ThisRound.shaman_ready[2] then
+        Events.doEvent("TimesUp")
     end
 end
 
 callbacks["modtoggle"] = function(pn, mod_id)
     mod_id = tonumber(mod_id)
-    if not roundv.running or not roundv.lobby or not mod_id or not mods[mod_id]
-            or pn ~= roundv.shamans[2] then -- only shaman #2 gets to choose mods
+    if not ThisRound.lobby_ready or not mod_id or not GAME_MODS[mod_id]
+            or pn ~= ThisRound.shamans[2] then -- only shaman #2 gets to choose mods
         return
     end
-    local is_set = roundv.mods:flip(mod_id):isset(mod_id)
+    local is_set = ThisRound.chosen_mods:flip(mod_id)[mod_id]
     for name in pL.room:pairs() do
         local imgs = TsmWindow.getImages(WINDOW_LOBBY, name)
         local img_dats = imgs.toggle
@@ -114,14 +110,17 @@ callbacks["modtoggle"] = function(pn, mod_id)
             img_dats[mod_id][1] = tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_LOBBY, img_dats[mod_id][2], img_dats[mod_id][3], name)
         end
     end
-    ui.updateTextArea(WINDOW_LOBBY+17,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(GetExpMult()))
+    ui.updateTextArea(WINDOW_LOBBY+15,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(ThisRound:getExpMult()))
 end
 
 callbacks["modhelp"] = function(pn, mod_id)
     mod_id = tonumber(mod_id) or -1
-    local mod = mods[mod_id]
+    local mod = GAME_MODS[mod_id]
     if mod then
-        ui.updateTextArea(WINDOW_LOBBY+16, string.format("<p align='center'><i><J>%s: %s %s of original exp.", mod[1], mod[3], expDisp(mod[2], false)),pn)
+        ui.updateTextArea(WINDOW_LOBBY+14, string.format("<p align='center'><i><J>%s: %s %s of original exp.",
+            players[pn]:tlFmt(mod[1]),
+            players[pn]:tlFmt(mod[3]),
+            expDisp(mod[2], false)), pn)
     end
 end
 

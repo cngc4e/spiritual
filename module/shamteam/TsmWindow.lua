@@ -103,63 +103,59 @@ do
             open = function(pn, p_data)
                 p_data.images = { main={}, mode={}, help={}, toggle={} }
 
-                --ui.addTextArea(WINDOW_LOBBY+1,"",pn,75,40,650,340,1,0,.8,true)  -- the background
-                local header = pL.shaman[pn] and "You’ve been chosen to pair up for the next round!" or "Every second, 320 baguettes are eaten in France!"
-                ui.addTextArea(WINDOW_LOBBY+2,"<p align='center'><font size='13'>"..header,pn,75,50,650,nil,1,0,1,true)
+                local header = players[pn]:tlFmt(ThisRound:isShaman(pn) and "chosen_shaman" or "shamans_choosing")
+                ui.addTextArea(WINDOW_LOBBY+1,"<p align='center'><font size='13'>"..header,pn,75,50,650,nil,1,0,1,true)
                 p_data.images.main[1] = {tfm.exec.addImage(IMG_LOBBY_BG, ":"..WINDOW_LOBBY, 70, 40, pn)}
 
                 -- shaman cards
-                --ui.addTextArea(WINDOW_LOBBY+3,"",pn,120,85,265,200,0xcdcdcd,0xbababa,.1,true)
-                --ui.addTextArea(WINDOW_LOBBY+4,"",pn,415,85,265,200,0xcdcdcd,0xbababa,.1,true)
-                ui.addTextArea(WINDOW_LOBBY+5,"<p align='center'><font size='13'><b>"..pDisp(roundv.shamans[1]),pn,118,90,269,nil,1,0,1,true)
-                ui.addTextArea(WINDOW_LOBBY+6,"<p align='center'><font size='13'><b>"..pDisp(roundv.shamans[2]),pn,413,90,269,nil,1,0,1,true)
+                ui.addTextArea(WINDOW_LOBBY+2,"<p align='center'><font size='13'><b>"..pnDisp(ThisRound.shamans[1]),pn,118,90,269,nil,1,0,1,true)
+                ui.addTextArea(WINDOW_LOBBY+3,"<p align='center'><font size='13'><b>"..pnDisp(ThisRound.shamans[2]),pn,413,90,269,nil,1,0,1,true)
 
                 -- mode
-                p_data.images.mode[TSM_HARD] = {tfm.exec.addImage(roundv.mode == TSM_HARD and IMG_FEATHER_HARD or IMG_FEATHER_HARD_DISABLED, ":"..WINDOW_LOBBY, 202, 125, pn), 202, 125}
-                p_data.images.mode[TSM_DIV] = {tfm.exec.addImage(roundv.mode == TSM_DIV and IMG_FEATHER_DIVINE or IMG_FEATHER_DIVINE_DISABLED, ":"..WINDOW_LOBBY, 272, 125, pn), 272, 125}
+                p_data.images.mode[TSM_HARD] = {tfm.exec.addImage(ThisRound.chosen_mode == TSM_HARD and IMG_FEATHER_HARD or IMG_FEATHER_HARD_DISABLED, ":"..WINDOW_LOBBY, 202, 125, pn), 202, 125}
+                p_data.images.mode[TSM_DIV] = {tfm.exec.addImage(ThisRound.chosen_mode == TSM_DIV and IMG_FEATHER_DIVINE or IMG_FEATHER_DIVINE_DISABLED, ":"..WINDOW_LOBBY, 272, 125, pn), 272, 125}
 
-                ui.addTextArea(WINDOW_LOBBY+20, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_HARD), pn, 202, 125, 35, 40, 1, 0, 0, true)
-                ui.addTextArea(WINDOW_LOBBY+21, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_DIV), pn, 272, 125, 35, 40, 1, 0, 0, true)
+                ui.addTextArea(WINDOW_LOBBY+4, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_HARD), pn, 202, 125, 35, 40, 1, 0, 0, true)
+                ui.addTextArea(WINDOW_LOBBY+5, string.format("<a href='event:setmode!%s'><font size='35'>\n", TSM_DIV), pn, 272, 125, 35, 40, 1, 0, 0, true)
 
                 -- difficulty
-                ui.addTextArea(WINDOW_LOBBY+7,"<p align='center'><font size='13'><b>Difficulty",pn,120,184,265,nil,1,0,.2,true)
-                ui.addTextArea(WINDOW_LOBBY+8,"<p align='center'><font size='13'>to",pn,240,240,30,nil,1,0,0,true)
-                ui.addTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..roundv.diff1,pn,190,240,20,nil,1,0,.2,true)
-                ui.addTextArea(WINDOW_LOBBY+10,"<p align='center'><font size='13'><b>"..roundv.diff2,pn,299,240,20,nil,1,0,.2,true)
-                ui.addTextArea(WINDOW_LOBBY+11,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!1&1'>&#x25B2;</a><br><a href='event:setdiff!1&-1'>&#x25BC;",pn,132,224,20,nil,1,0,0,true)
-                ui.addTextArea(WINDOW_LOBBY+12,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!2&1'>&#x25B2;</a><br><a href='event:setdiff!2&-1'>&#x25BC;",pn,350,224,20,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+6,"<p align='center'><font size='13'><b>Difficulty",pn,120,184,265,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+7,"<p align='center'><font size='13'>to",pn,240,240,30,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+8,"<p align='center'><font size='13'><b>"..ThisRound.chosen_diff[1],pn,190,240,20,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+9,"<p align='center'><font size='13'><b>"..ThisRound.chosen_diff[2],pn,299,240,20,nil,1,0,.2,true)
+                ui.addTextArea(WINDOW_LOBBY+10,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!1&1'>&#x25B2;</a><br><a href='event:setdiff!1&-1'>&#x25BC;",pn,132,224,20,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+11,GUI_BTN.."<p align='center'><font size='17'><b><a href='event:setdiff!2&1'>&#x25B2;</a><br><a href='event:setdiff!2&-1'>&#x25BC;",pn,350,224,20,nil,1,0,0,true)
 
                 -- mods
                 local mods_str = {}
                 local mods_helplink_str = {}
                 local i = 1
-                for k, mod in pairs(mods) do
-                    mods_str[#mods_str+1] = string.format("<a href='event:modtoggle!%s'>%s", k, mod[1])
-                    local is_set = roundv.mods:isset(k)
+                for k, mod in pairs(GAME_MODS) do
+                    mods_str[#mods_str+1] = string.format("<a href='event:modtoggle!%s'>%s", k, players[pn]:tlFmt(mod[1]))
+                    local is_set = ThisRound.chosen_mods[k]
                     local x, y = 640, 120+((i-1)*25)
                     p_data.images.toggle[k] = {tfm.exec.addImage(is_set and IMG_TOGGLE_ON or IMG_TOGGLE_OFF, ":"..WINDOW_LOBBY, x, y, pn), x, y}
-                    --ui.addTextArea(WINDOW_LOBBY+80+i,string.format("<a href='event:modtoggle!%s'><font size='15'> <br>", k),pn,x-2,y+3,35,18,1,0xfffff,0,true)
                     
                     x = 425
                     y = 125+((i-1)*25)
                     p_data.images.help[k] = {tfm.exec.addImage(IMG_HELP, ":"..WINDOW_LOBBY, x, y, pn), x, y}
                     mods_helplink_str[#mods_helplink_str+1] = string.format("<a href='event:modhelp!%s'>", k)
 
-                    i = i+1
+                    i = i + 1
                 end
-                ui.addTextArea(WINDOW_LOBBY+14, table.concat(mods_str, "\n\n").."\n", pn,450,125,223,nil,1,0,0,true)
-                ui.addTextArea(WINDOW_LOBBY+15, "<font size='11'>"..table.concat(mods_helplink_str, "\n\n").."\n", pn,422,123,23,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+12, table.concat(mods_str, "\n\n").."\n", pn,450,125,223,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+13, "<font size='11'>"..table.concat(mods_helplink_str, "\n\n").."\n", pn,422,123,23,nil,1,0,0,true)
 
                 -- help and xp multiplier text
-                ui.addTextArea(WINDOW_LOBBY+16,"<p align='center'><i><J>",pn,120,300,560,nil,1,0,0,true)
-                ui.addTextArea(WINDOW_LOBBY+17,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(GetExpMult()),pn,330,333,140,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+14,"<p align='center'><i><J>",pn,120,300,560,nil,1,0,0,true)
+                ui.addTextArea(WINDOW_LOBBY+15,"<p align='center'><font size='13'><N>Exp multiplier:<br><font size='15'>"..expDisp(ThisRound:getExpMult()),pn,330,333,140,nil,1,0,0,true)
 
                 -- ready
-                ui.addTextArea(WINDOW_LOBBY+18, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,200,340,100,24,0x666666,0x676767,1,true)
-                ui.addTextArea(WINDOW_LOBBY+19, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,500,340,100,24,0x666666,0x676767,1,true)
+                ui.addTextArea(WINDOW_LOBBY+16, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,200,340,100,24,0x666666,0x676767,1,true)
+                ui.addTextArea(WINDOW_LOBBY+17, GUI_BTN.."<font size='2'><br><font size='12'><p align='center'><a href='event:setready'>".."&#9744; Ready".."</a>",pn,500,340,100,24,0x666666,0x676767,1,true)
             end,
             close = function(pn, p_data)
-                for i = 1, 21 do
+                for i = 1, 17 do
                     ui.removeTextArea(WINDOW_LOBBY+i, pn)
                 end
                 for _, imgs in pairs(p_data.images) do

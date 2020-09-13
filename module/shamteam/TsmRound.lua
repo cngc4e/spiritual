@@ -17,32 +17,44 @@ do
         return shams, shams_key
     end
 
-    local showMapInfo = function()
+    local showMapInfo = function(self)
         for name, player in pairs(players) do
-            local shamanstr = pnDisp(ThisRound.shamans[1])
-            if ThisRound.shamans[2] then
-                shamanstr = shamanstr .. " - " .. pnDisp(ThisRound.shamans[2])
+            local shamanstr = pnDisp(self.shamans[1])
+            if self.shamans[2] then
+                shamanstr = shamanstr .. " - " .. pnDisp(self.shamans[2])
             end
             local t_str = {
-                player:tlFmt("map_info", ThisRound.mapcode, ThisRound.original_author or ThisRound.author, ThisRound.difficulty,
-                        ThisRound.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
+                player:tlFmt("map_info", self.mapcode, self.original_author or self.author, self.difficulty,
+                self.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
                 player:tlFmt("shaman_info", shamanstr)
             }
-            local propstr = player:tlFmt("windgrav_info", ThisRound.wind, ThisRound.gravity)
+
+            local propstr = player:tlFmt("windgrav_info", self.wind, self.gravity)
             local props = { }
-            if ThisRound.portals then
+            if self.portals then
                 props[#props+1] = player:tlFmt("portals")
             end
-            if ThisRound.no_balloon then
+            if self.no_balloon then
                 props[#props+1] = player:tlFmt("no_balloon")
             end
-            if ThisRound.opportunist then
+            if self.opportunist then
                 props[#props+1] = player:tlFmt("opportunist")
             end
             if #props > 0 then
                 propstr = propstr .. " <G>| <VP>" .. table.concat(props, " <G>| <VP>")
             end
             t_str[#t_str+1] = propstr
+
+            local mods = { }
+            for k, mod in pairs(GAME_MODS) do
+                if self.mods[k] then
+                    mods[#mods+1] = player:tlFmt(mod[1])
+                end
+            end
+            if #mods > 0 then
+                t_str[#t_str+1] = string.format("<ROSE>%s: <N>%s", player:tlFmt("mods"), table.concat(mods, ", "))
+            end
+
             player:chatMsg(table.concat(t_str, "\n"))
         end
     end
@@ -76,7 +88,6 @@ do
         self.difficulty = dbmap and dbmap[key[self.mode]] or -1
     
         self.shamans, self.shamans_key = getShamans()
-        self.mods = boolset:new()
         self.st_index = 1  -- current shaman's turn, index of self.shamans
         self.arrow_count = 0
         self.sballoon_count = 0
@@ -94,7 +105,7 @@ do
             self.spawnlist[name] = { _len = 0 }
         end
 
-        showMapInfo()
+        showMapInfo(self)
         self:updateMapTitle()
         self:updateTurnUI()
         self:updateCircle()
@@ -119,11 +130,21 @@ do
     TsmRound.onLobby = function(self)
         self.start_epoch = os.time()
         self.shamans, self.shamans_key = getShamans()
+        self.chosen_mode = TSM_HARD
+        self.chosen_diff = {1, 5}
+        self.chosen_mods = boolset:new()
+        self.shaman_ready = {false, false}
+
+        TsmWindow.close(WINDOW_LOBBY, nil)
+        TsmWindow.open(WINDOW_LOBBY, nil)
 
         tfm.exec.disableAfkDeath(true)
         tfm.exec.disableMortCommand(true)
         tfm.exec.disablePrespawnPreview(false)
         tfm.exec.setGameTime(30)
+
+        -- Lobby all set!
+        self.lobby_ready = true
     end
 
     TsmRound.onEnd = function(self)
@@ -131,13 +152,16 @@ do
         IRound.onEnd(self)
 
         if self.is_lobby then
-            TsmRotation.setDiffRange(1, 5)
+            TsmWindow.close(WINDOW_LOBBY, nil)
+            TsmRotation.setDiffRange(self.chosen_diff[1], self.chosen_diff[2])
+            TsmRotation.setMode(self.chosen_mode)
+            TsmRotation.setMods(self.chosen_mods)
             TsmRotation.doRotate()
         else
             -- Show back GUI for shamans
             for i = 1, #self.shamans do
                 local name = self.shamans[i]
-                if players[name].toggles[OPT_GUI] then
+                if players[name] and players[name].toggles[OPT_GUI] then
                     TsmWindow.open(WINDOW_GUI, name)
                 end
             end
@@ -190,14 +214,12 @@ do
     end
 
     TsmRound.updateTurnUI = function(self)
-        if not self:isReady() then return end
         local color = "CH"
         local shaman = self:getCurrentTurnShaman()
         ui.setShamanName(string.format("<%s>%s's <J>Turn", color, pnDisp(shaman)))
     end
 
     TsmRound.updateCircle = function(self)
-        if not self:isReady() then return end
         for name, player in pairs(players) do
             player:updateCircle(self:getCurrentTurnShaman())
         end
@@ -228,13 +250,16 @@ do
             return false
         end
 
-        if self.mode == TSM_DIV and #self.shamans == 2 then
+        if self.mode ~= TSM_DIV and #self.shamans == 2 then
             local s1, s2 = room.playerList[self.shamans[1]], room.playerList[self.shamans[2]]
-            if not pythag(s1.x, s1.y, s2.x, s2.y, THM_SPAWN_RANGE) then
+            if s1 and s2 and not math_pythag(s1.x, s1.y, s2.x, s2.y, THM_SPAWN_RANGE) then
                 -- Not within range!
                 tfm.exec.removeObject(desc.id)
                 players[pn]:tlChatMsg("warn_self_range")
-                players[self:getNextTurnShaman()]:tlChatMsg("warn_self_range")
+                local nextsham = self:getNextTurnShaman()
+                if players[nextsham] then
+                    players[nextsham]:tlChatMsg("warn_self_range")
+                end
                 return false
             end
         end
@@ -261,6 +286,22 @@ do
         sl._len = sl._len + 1
         sl[sl._len] = desc.id
         return true
+    end
+
+    TsmRound.getExpMult = function(self)
+        local mods = self.is_lobby and self.chosen_mods or self.mods
+        local ret = 0
+        for k, mod in pairs(GAME_MODS) do
+            if mods[k] then
+                ret = ret + mod[2]
+            end
+        end
+        if ret > 0.7 then
+            ret = 0.7
+        elseif ret < -0.7 then
+            ret = -0.7
+        end
+        return ret
     end
 
     TsmRound.new = function(_, vars)

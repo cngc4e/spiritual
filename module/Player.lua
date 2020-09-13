@@ -27,6 +27,10 @@ do
         return tfm.exec.chatMessage(self:tlFmt(kname, ...), self.name)
     end
 
+    Player.errorTlChatMsg = function(self, kname, ...)
+        return self:chatMsgFmt("<R>%s: %s", self:tlFmt("error"), self:tlFmt(kname, ...))
+    end
+
     -- Base data for this class, to be used in inherited new() methods
     Player.newData = function(self, pn)
         local p = room.playerList[pn]

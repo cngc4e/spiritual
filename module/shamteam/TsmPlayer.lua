@@ -41,9 +41,11 @@ do
 
     TsmPlayer.updateCircle = function(self, target)
         self:removeCircle()
-        local current_sham = target or ThisRound:getCurrentTurnShaman()
-        if current_sham and self.name ~= current_sham and self.toggles[OPT_CIRCLE] then
-            self.circle_imgid = tfm.exec.addImage(IMG_RANGE_CIRCLE, "$"..current_sham, -120, -120, self.name)
+        if ThisRound:isReady() and ThisRound.mode ~= TSM_DIV then
+            local current_sham = target or ThisRound:getCurrentTurnShaman()
+            if current_sham and self.name ~= current_sham and self.toggles[OPT_CIRCLE] then
+                self.circle_imgid = tfm.exec.addImage(IMG_RANGE_CIRCLE, "$"..current_sham, -120, -120, self.name)
+            end
         end
     end
 

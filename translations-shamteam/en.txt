@@ -59,10 +59,13 @@ unafk_message = [[<ROSE>Welcome back! We've been expecting you.]]
 
 used_an_arrow = [[<ROSE>%s used an arrow! (%s used in total)]]
 used_a_solid_balloon = [[<ROSE>%s used a solid balloon! (%s left)]]
-not_your_turn = [[<J>Ξ It's not your turn to spawn yet!"]]
+not_your_turn = [[<J>Ξ It's not your turn to spawn yet!]]
 warn_self_range = [[<J>Ξ Your partner needs to be within your spawning range.]]
 warn_partner_range = [[<J>Ξ You need to be within your partner's spawning range.]]
 no_more_solid_balloon = [[<J>Ξ You may not spawn any more solid balloons.]]
+
+error = [[error]]
+diff_range_error = [[range must have a value of 1-%s and have a difference of at least 1]]
 
 antilag_warn = [[<ROSE>Hey there, you appear to have lagged. You should consider enabling AntiLag via the options menu (press O).]]
 antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enabled AntiLag for you.]]
@@ -76,6 +79,7 @@ windgrav_info = [[<N>Wind: <J>%s <G>| <N>Gravity: <J>%s]]
 portals = [[Portals]]
 no_balloon = [[No-Balloon]]
 opportunist = [[Opportunist]]
+mods = [[Mods]]
 
 ## Player options menu
 name_antilag = [[AntiLag]]
@@ -86,3 +90,20 @@ desc_gui = [[Whether to show or hide the help menu, player settings and profile 
 
 name_circle = [[Show partner's range]]
 desc_circle = [[Toggles an orange circle that shows the spawning range of your partner in Team Hard Mode.]]
+
+## Mods
+name_telepathy = [[Telepathic Communication]]
+desc_telepathy = [[Disables prespawn preview. You won't be able to see what and where your partner is trying to spawn.]]
+
+name_work_fast = [[We Work Fast!]]
+desc_work_fast = [[Reduces building time limit by 60 seconds. For the quick hands.]]
+
+name_butter_fingers = [[Butter Fingers]]
+desc_butter_fingers = [[Allows you and your partner to undo your last spawned object by pressing U up to two times.]]
+
+name_snail_nail = [[Snail Nail]]
+desc_snail_nail = [[ncreases building time limit by 30 seconds. More time for our nails to arrive.]]
+
+## Lobby window
+chosen_shaman = [[You’ve been chosen to pair up for the next round!]]
+shamans_choosing = [[Shamans are now choosing the gameplay...]]

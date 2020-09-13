@@ -24,6 +24,9 @@ do
     end)
 
     Events.hookEvent("PlayerDataLoaded", function(pn, data)
-        PDHelper.onPdLoaded(pn, data)
+        local success, result = pcall(PDHelper.onPdLoaded, pn, data)
+        if not success then
+            print(string.format("Exception encountered in eventPlayerDataLoaded (%s): %s", pn, result))
+        end
     end)
 end
