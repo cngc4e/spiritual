@@ -1,0 +1,109 @@
+## General/common
+close = [[Close]]
+
+## Help window
+help_tab_welcome = [[Welcome]]
+help_tab_rules = [[Rules]]
+help_tab_commands = [[Commands]]
+help_tab_contributors = [[Contributors]]
+
+help_content_welcome = [[
+<p align="center"><J><font size='14'><b>Welcome to #ShamTeam</b></font></p>
+<p align="left"><font size='12'><N>Welcome to Team Shaman Mode (TSM)! The gameplay of TSM is simple: You will pair with another shaman and take turns spawning objects. You earn points at the end of the round depending on mice saved. But be careful! If you make a mistake by spawning when it's not your turn, or dying, you and your partner will lose points! There will be mods that you can enable to make your gameplay a little bit more challenging, and should you win the round, your score will be multiplied accordingly.
+
+Join our discord server for help and more information!
+Link: %s<a href="event:link!%s">discord.gg/YkzM4rh</a>
+]]
+
+help_content_rules = [[
+<p align="center"><J><font size='14'><b>Rules</b></font></p>
+<p align="left"><font size='12'><N>- In hard mode, you must be within your partner's spawning range for a successful spawn.
+- In divine mode, using arrows deduct points.
+- Only up to 3 solid balloons may be used.
+- Spawning an object while it is not your turn will result in points deduction.
+]]
+
+help_content_commands = [[
+<p align="center"><J><font size='14'><b>Commands</b></font></p>
+<p align="left"><font size='12'><N>!m/!mort - kills yourself
+!afk - mark yourself as a spectator
+!pair [player] - request to pair up with a player
+!cancel - cancels existing forced pairing or pairing request
+
+!stats [player] - view your stats or another player’s
+]]
+
+help_content_contributors = [[
+<p align="center"><J><font size='14'><b>Contributors</b></font></p>
+<p align="left"><font size='12'><N>#shamteam is brought to you by the Academy of Building! It would not be possible without the following people:
+
+<J>Casserole#1798<N> - Developer
+<J>Emeryaurora#0000<N> - Module designer & original concept maker
+<J>Pegasusflyer#0000<N> - Module designer
+
+A full list of staff are available via the !staff command.
+]]
+
+## Chat messages
+
+welcome_message = [[
+\t<VP>Ξ Welcome to <b>Team Shaman (TSM)</b> v1.0 Alpha (Re-write)! Ξ
+<J>TSM is a building module where dual shamans take turns to spawn objects.
+Press H for more information.
+<R>NOTE: <VP>Module is in early stages of development and may see incomplete or broken features.
+]]
+
+tribehouse_mode_warning = [[<R>NOTE: The module is running in Tribehouse mode, stats are not saved here. Head to any #%s room for stats to save!]]
+
+unafk_message = [[<ROSE>Welcome back! We've been expecting you.]]
+
+used_an_arrow = [[<ROSE>%s used an arrow! (%s used in total)]]
+used_a_solid_balloon = [[<ROSE>%s used a solid balloon! (%s left)]]
+not_your_turn = [[<J>Ξ It's not your turn to spawn yet!]]
+warn_self_range = [[<J>Ξ Your partner needs to be within your spawning range.]]
+warn_partner_range = [[<J>Ξ You need to be within your partner's spawning range.]]
+no_more_solid_balloon = [[<J>Ξ You may not spawn any more solid balloons.]]
+
+error = [[error]]
+diff_range_error = [[range must have a value of 1-%s and have a difference of at least 1]]
+
+antilag_warn = [[<ROSE>Hey there, you appear to have lagged. You should consider enabling AntiLag via the options menu (press O).]]
+antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enabled AntiLag for you.]]
+
+## Map info
+map_info = [[<ROSE>[Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
+hard = [[Hard]]
+divine = [[Divine]]
+shaman_info = [[<N>Shamans: <VP>%s]]
+windgrav_info = [[<N>Wind: <J>%s <G>| <N>Gravity: <J>%s]]
+portals = [[Portals]]
+no_balloon = [[No-Balloon]]
+opportunist = [[Opportunist]]
+mods = [[Mods]]
+
+## Player options menu
+name_antilag = [[AntiLag]]
+desc_antilag = [[Attempt to minimise impacts on buildings caused by delayed anchor spawning during high latency.]]
+
+name_gui = [[Show GUI]]
+desc_gui = [[Whether to show or hide the help menu, player settings and profile buttons on-screen.]]
+
+name_circle = [[Show partner's range]]
+desc_circle = [[Toggles an orange circle that shows the spawning range of your partner in Team Hard Mode.]]
+
+## Mods
+name_telepathy = [[Telepathic Communication]]
+desc_telepathy = [[Disables prespawn preview. You won't be able to see what and where your partner is trying to spawn.]]
+
+name_work_fast = [[We Work Fast!]]
+desc_work_fast = [[Reduces building time limit by 60 seconds. For the quick hands.]]
+
+name_butter_fingers = [[Butter Fingers]]
+desc_butter_fingers = [[Allows you and your partner to undo your last spawned object by pressing U up to two times.]]
+
+name_snail_nail = [[Snail Nail]]
+desc_snail_nail = [[ncreases building time limit by 30 seconds. More time for our nails to arrive.]]
+
+## Lobby window
+chosen_shaman = [[You’ve been chosen to pair up for the next round!]]
+shamans_choosing = [[Shamans are now choosing the gameplay...]]
