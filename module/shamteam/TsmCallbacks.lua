@@ -117,7 +117,7 @@ callbacks["modhelp"] = function(pn, mod_id)
     mod_id = tonumber(mod_id) or -1
     local mod = GAME_MODS[mod_id]
     if mod then
-        ui.updateTextArea(WINDOW_LOBBY+14, string.format("<p align='center'><i><J>%s: %s %s of original exp.",
+        ui.updateTextArea(WINDOW_LOBBY+14, players[pn]:tlFmt("of_original_xp",
             players[pn]:tlFmt(mod[1]),
             players[pn]:tlFmt(mod[3]),
             expDisp(mod[2], false)), pn)

@@ -814,6 +814,11 @@ do
 		if type(f) == "function" then error = f
 		else db2.info = 8 return error( "db2: errorfunc: Expected function, found " .. type(f) , 2 ) end
 	end
+
+	local minuint = function( num , bytes , bpb )
+		local max = ( 2^( bpb or 7 ) )^bytes - 1
+		return num > max and max or num
+	end
 	
 	db2.Datatype = Datatype
 	db2.encode = encode
@@ -824,4 +829,5 @@ do
 	db2.numbertobytes = numbertobytes
 	db2.lbtn = lbtn
 	db2.lntb = lntb
+	db2.minuint = minuint
 end

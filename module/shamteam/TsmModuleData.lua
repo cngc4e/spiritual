@@ -28,10 +28,10 @@ do
                 db2.UnsignedInt{ key="code", size=4 },
                 db2.UnsignedInt{ key="difficulty_hard", size=1 },
                 db2.UnsignedInt{ key="difficulty_divine", size=1 },
-                db2.UnsignedInt{ key="completed_hard", size=5 },
-                db2.UnsignedInt{ key="completed_divine", size=5 },
-                db2.UnsignedInt{ key="rounds_hard", size=5 },
-                db2.UnsignedInt{ key="rounds_divine", size=5 },
+                db2.UnsignedInt{ key="completed_hard", size=2 },
+                db2.UnsignedInt{ key="completed_divine", size=2 },
+                db2.UnsignedInt{ key="rounds_hard", size=2 },
+                db2.UnsignedInt{ key="rounds_divine", size=2 },
             }}},
             db2.VarDataList{ key="banned", size=1000, datatype=db2.Object{schema={
                 db2.VarChar{ key="name", size=25 },
@@ -228,9 +228,9 @@ do
                 end
 
                 if self.completed then
-                    found.completed_hard = found.completed_hard + 1
+                    found.completed_hard = db2.minuint(found.completed_hard + 1, 2)
                 end
-                found.rounds_hard = found.rounds_hard + 1
+                found.rounds_hard = db2.minuint(found.rounds_hard + 1, 2)
                 return MDHelper.MERGE_OK
             end,
             logobject = function(self)
@@ -257,9 +257,9 @@ do
                 end
 
                 if self.completed then
-                    found.completed_divine = found.completed_divine + 1
+                    found.completed_divine = db2.minuint(found.completed_divine + 1, 2)
                 end
-                found.rounds_divine = found.rounds_divine + 1
+                found.rounds_divine = db2.minuint(found.rounds_divine + 1, 2)
                 return MDHelper.MERGE_OK
             end,
             logobject = function(self)
@@ -461,5 +461,5 @@ do
     end
     
     MDHelper.init(FILE_NUMBER, MD_SCHEMA,
-            LATEST_MD_VER, operations, DEFAULT_DB, is_official_room, pre_compute)
+            LATEST_MD_VER, operations, DEFAULT_DB, not is_official_room, pre_compute)
 end

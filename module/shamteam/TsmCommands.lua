@@ -187,6 +187,25 @@ do
             end,
         },
         tfmcmd.Main {
+            name = "info",
+            description = "Module specific info of current/specified map.",
+            allowed = LEVEL_STAFF,
+            args = {
+                tfmcmd.ArgString { optional = true },
+            },
+            func = function(pn, code)
+                if not module_started then return end
+                local map = TsmModuleData.getMapInfo(code or ThisRound.mapcode)
+                if not map then
+                    tfm.exec.chatMessage("<R>This map is not in rotation.", pn)
+                    return
+                end
+                players[pn]:chatMsgFmt("Mapcode: @%s\nDifficulty: %s, %s\nCompletion: %s / %s, %s / %s",
+                        map.code, map.difficulty_hard, map.difficulty_divine,
+                        map.completed_hard, map.rounds_hard, map.completed_divine, map.rounds_divine)
+            end,
+        }
+        tfmcmd.Main {
             name = "skip",
             allowed = LEVEL_STAFF,
             func = function(pn)

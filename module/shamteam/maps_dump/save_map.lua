@@ -866,6 +866,7 @@ do
     local file_id = nil
     local latest_schema_version = nil
     local file_parse_callback = nil
+    local is_nor = false
     local inited = false
 
     local MODULE_LOG_OP = {
@@ -917,7 +918,7 @@ do
                     MDHelper.commit(nil, MDHelper.OP_ADD_MODULE_LOG, pn, op_id, logobj)
                 end
                 -- don't schedule and sync commit if the operation specifies to be passive in non-official rooms
-                if is_official_room or not op_mt.PASSIVE_ON_NOR then
+                if is_nor or not op_mt.PASSIVE_ON_NOR then
                     -- Schedule the commit to be done again during the next syncing
                     db_commits[#db_commits+1] = { op_mt, pn }
                 end
@@ -1001,19 +1002,20 @@ do
         end
     end
 
-    MDHelper.init = function(fid, schms, latest, ops, default_db, parsed_cb)
+    MDHelper.init = function(fid, schms, latest, ops, default_db, nor, parsed_cb)
         file_id = fid
         schema = schms
         latest_schema_version = latest
         operations = ops
         operations[MDHelper.OP_ADD_MODULE_LOG] = MODULE_LOG_OP
         db_cache = default_db
+        is_nor = nor
         file_parse_callback = parsed_cb
         inited = true
     end
 end
 
-local TsmModuleData = setmetatable({}, { __index = MDHelper })
+TsmModuleData = setmetatable({}, { __index = MDHelper })
 do
     local FILE_NUMBER = MODULE_ID
     local LATEST_MD_VER = 1
@@ -1043,10 +1045,10 @@ do
                 db2.UnsignedInt{ key="code", size=4 },
                 db2.UnsignedInt{ key="difficulty_hard", size=1 },
                 db2.UnsignedInt{ key="difficulty_divine", size=1 },
-                db2.UnsignedInt{ key="completed_hard", size=5 },
-                db2.UnsignedInt{ key="completed_divine", size=5 },
-                db2.UnsignedInt{ key="rounds_hard", size=5 },
-                db2.UnsignedInt{ key="rounds_divine", size=5 },
+                db2.UnsignedInt{ key="completed_hard", size=2 },
+                db2.UnsignedInt{ key="completed_divine", size=2 },
+                db2.UnsignedInt{ key="rounds_hard", size=2 },
+                db2.UnsignedInt{ key="rounds_divine", size=2 },
             }}},
             db2.VarDataList{ key="banned", size=1000, datatype=db2.Object{schema={
                 db2.VarChar{ key="name", size=25 },
@@ -1100,188 +1102,6 @@ do
     }
 
     local operations = {
-        [TsmModuleData.OP_ADD_MAP] = {
-            init = function(self, mapcode)
-                self.mapcode = mapcode
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        found = true
-                        break
-                    end
-                end
-                if found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." already exists in the database."
-                end
-                maps[#maps+1] = {code=self.mapcode, difficulty=0, completed=0, rounds=0}
-                return MDHelper.MERGE_OK, "@"..self.mapcode.." successfully added."
-            end,
-            logobject = function(self)
-                return {
-                    code = self.mapcode
-                }
-            end,
-            changelog = function(log)
-                return "Added @"..log.code
-            end,
-        },
-        [TsmModuleData.OP_REMOVE_MAP] = {
-            init = function(self, mapcode)
-                self.mapcode = mapcode
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        table.remove(maps, i)
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.."  does not exist in the database."
-                end
-                return MDHelper.MERGE_OK, "@"..self.mapcode.." successfully removed."
-            end,
-            logobject = function(self)
-                return {
-                    code = self.mapcode
-                }
-            end,
-            changelog = function(log)
-                return "Removed @"..log.code
-            end,
-        },
-        [TsmModuleData.OP_UPDATE_MAP_DIFF_HARD] = {
-            init = function(self, mapcode, diff)
-                self.mapcode = mapcode
-                self.diff = diff
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        if not self.old_diff then
-                            self.old_diff = maps[i].difficulty_hard
-                        end
-                        maps[i].difficulty_hard = self.diff
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
-                end
-                return MDHelper.MERGE_OK, "@"..self.mapcode.." Hard difficulty updated to "..self.diff
-            end,
-            logobject = function(self)
-                return {
-                    code = self.mapcode,
-                    old_diff = self.old_diff or 0,
-                    diff = self.diff
-                }
-            end,
-            changelog = function(log)
-                return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
-            end,
-        },
-        [TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE] = {
-            init = function(self, mapcode, diff)
-                self.mapcode = mapcode
-                self.diff = diff
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        if not self.old_diff then
-                            self.old_diff = maps[i].difficulty_divine
-                        end
-                        maps[i].difficulty_divine = self.diff
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
-                end
-                return MDHelper.MERGE_OK, "@"..self.mapcode.." Divine difficulty updated to "..self.diff
-            end,
-            logobject = function(self)
-                return {
-                    code = self.mapcode,
-                    old_diff = self.old_diff or 0,
-                    diff = self.diff
-                }
-            end,
-            changelog = function(log)
-                return "Updated @"..log.code.." - difficulty: "..log.old_diff.." -&gt; "..log.diff
-            end,
-        },
-        [TsmModuleData.OP_ADD_MAP_COMPLETION_HARD] = {
-            init = function(self, mapcode, completed)
-                self.mapcode = mapcode
-                self.completed = completed
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        found = maps[i]
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
-                end
-
-                if self.completed then
-                    found.completed_hard = found.completed_hard + 1
-                end
-                found.rounds_hard = found.rounds_hard + 1
-                return MDHelper.MERGE_OK
-            end,
-            logobject = function(self)
-                return nil
-            end,
-            PASSIVE_ON_NOR = true
-        },
-        [TsmModuleData.OP_ADD_MAP_COMPLETION_DIVINE] = {
-            init = function(self, mapcode, completed)
-                self.mapcode = mapcode
-                self.completed = completed
-            end,
-            merge = function(self, db)
-                local maps = db.maps
-                local found = false
-                for i = 1, #maps do
-                    if maps[i].code == self.mapcode then
-                        found = maps[i]
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "@"..self.mapcode.." does not exist in the database."
-                end
-
-                if self.completed then
-                    found.completed_divine = found.completed_divine + 1
-                end
-                found.rounds_divine = found.rounds_divine + 1
-                return MDHelper.MERGE_OK
-            end,
-            logobject = function(self)
-                return nil
-            end,
-            PASSIVE_ON_NOR = true
-        },
         [TsmModuleData.OP_REPLACE_MAPS] = {
             init = function(self, map_table)
 				self.map_table = map_table
@@ -1297,193 +1117,18 @@ do
                 return "Mass update map database"
             end,
         },
-        [TsmModuleData.OP_ADD_BAN] = {
-            init = function(self, pn, reason)
-                self.pn = pn
-                self.reason = reason or ""
-            end,
-            merge = function(self, db)
-                local banned = db.banned
-                for i = 1, #banned do
-                    if banned[i].name == self.pn then
-                        found = true
-                        break
-                    end
-                end
-                if found then
-                    return MDHelper.MERGE_NOTHING, self.pn.." is already banned."
-                end
-
-                banned[#banned+1] = {
-                    name = self.pn,
-                    reason = self.reason,
-                    time = math.floor(os.time()/1000)
-                }
-                return MDHelper.MERGE_OK, self.pn.." has been added to the ban list."
-            end,
-            logobject = function(self)
-                return {
-                    name = self.pn
-                }
-            end,
-            changelog = function(log)
-                return "Permanently banned "..log.name
-            end,
-        },
-        [TsmModuleData.OP_REMOVE_BAN] = {
-            init = function(self, pn)
-                self.pn = pn
-            end,
-            merge = function(self, db)
-                local banned = db.banned
-                local found = false
-                for i = 1, #banned do
-                    if banned[i].name == self.pn then
-                        table.remove(banned, i)
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "No existing player was banned."
-                end
-                return MDHelper.MERGE_OK, self.pn.." was removed from the ban list."
-            end,
-            logobject = function(self)
-                return {
-                    name = self.pn
-                }
-            end,
-            changelog = function(log)
-                return "Revoked permanent ban on "..log.name
-            end,
-        },
-        [TsmModuleData.OP_ADD_STAFF] = {
-            init = function(self, pn)
-                self.pn = pn
-            end,
-            merge = function(self, db)
-                local staff = db.staff
-                for i = 1, #staff do
-                    if staff[i].name == self.pn then
-                        found = true
-                        break
-                    end
-                end
-                if found then
-                    return MDHelper.MERGE_NOTHING, self.pn.." is already a staff."
-                end
-
-                staff[#staff+1] = self.pn
-                return MDHelper.MERGE_OK, self.pn.." has been added to the staff list."
-            end,
-            logobject = function(self)
-                return {
-                    name = self.pn
-                }
-            end,
-            changelog = function(log)
-                return "Added staff: "..log.name
-            end,
-        },
-        [TsmModuleData.OP_REMOVE_STAFF] = {
-            init = function(self, pn)
-                self.pn = pn
-            end,
-            merge = function(self, db)
-                local staff = db.staff
-                local found = false
-                for i = 1, #staff do
-                    if staff[i].name == self.pn then
-                        table.remove(staff, i)
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    return MDHelper.MERGE_NOTHING, "No existing player is a staff."
-                end
-                return MDHelper.MERGE_OK, self.pn.." was removed from the staff list."
-            end,
-            logobject = function(self)
-                return {
-                    name = self.pn
-                }
-            end,
-            changelog = function(log)
-                return "Revoked staff rights on: "..log.name
-            end,
-        },
     }
 
-    local pre_compute = function()
-        -- sort maps table for faster lookups
-        local maps = MDHelper.getTable("maps")
-        maps_by_diff = {}
-        maps_by_key = {}
-        for i = 1, #maps do
-            maps_by_key[maps[i].code] = maps[i]
-
-            local diff = maps[i].difficulty
-            local difft = maps_by_diff[diff]
-            if not difft then
-                difft = { _len = 0 }
-                maps_by_diff[diff] = difft
-            end
-            difft._len = difft._len + 1
-            difft[difft._len] = maps[i].code
-		end
-		if _G.eventFileParsed then _G.eventFileParsed() end  -- ADD
-    end
-
-    TsmModuleData.getMapInfo = function(mapcode)
-        mapcode = int_mapcode(mapcode)
-        if not mapcode then return end
-        return maps_by_key[mapcode]
-    end
-
-    TsmModuleData.getMapcodesByDiff = function(diff)
-        if not diff then return maps_by_diff end
-        return maps_by_diff[diff] or {}
-    end
-
-    TsmModuleData.isStaff = function(pn)
-        local staff = MDHelper.getTable("staff")
-        for i = 1, #staff do
-            if staff[i] == pn then
-                return true
-            end
-        end
-        return false
-    end
-
-    local should_precomp = {
-        TsmModuleData.OP_ADD_MAP,
-        TsmModuleData.OP_REMOVE_MAP,
-        TsmModuleData.OP_UPDATE_MAP_DIFF_HARD,
-        TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE
-    }
     TsmModuleData.commit = function(pn, op_id, a1, a2, a3, a4)
         local ret = MDHelper.commit(pn, op_id, a1, a2, a3, a4)
-        if should_precomp[op_id] then
-            pre_compute()
-        end
         return ret
     end
     
     MDHelper.init(FILE_NUMBER, MD_SCHEMA,
-            LATEST_MD_VER, operations, DEFAULT_DB, pre_compute)
+            LATEST_MD_VER, operations, DEFAULT_DB, false, _G.eventFileParsed)
 end
 
 local maps = {{code=1852359, difficulty_hard=4, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=294822, difficulty_hard=2, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1289915, difficulty_hard=1, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1236698, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3587523, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6114320, difficulty_hard=0, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=2611862, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3292713, difficulty_hard=4, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=5479449, difficulty_hard=3, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1287411, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3833268, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6244577, difficulty_hard=1, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6400012, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3630912, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=5417400, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6684914, difficulty_hard=0, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7294988, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=2183071, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=2187511, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3518304, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=473464, difficulty_hard=1, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=4730674, difficulty_hard=4, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=2116888, difficulty_hard=4, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=586103, difficulty_hard=2, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3376768, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=2670753, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1593943, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=387529, difficulty_hard=5, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747230, difficulty_hard=4, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=653426, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=4113708, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6328976, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747641, difficulty_hard=2, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747649, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747238, difficulty_hard=5, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3688810, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=4066292, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747241, difficulty_hard=3, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7749467, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7749472, difficulty_hard=5, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7748557, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6727382, difficulty_hard=3, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=5978741, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7749479, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7749488, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=6518642, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7746353, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7746357, difficulty_hard=5, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7746359, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1597117, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7747235, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3567628, difficulty_hard=3, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3488221, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=5721717, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=961473, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7773155, difficulty_hard=4, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=4980792, difficulty_hard=0, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7748109, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7110025, difficulty_hard=1, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7039658, difficulty_hard=1, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1966841, difficulty_hard=1, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7749490, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7746389, difficulty_hard=4, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=1564534, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7746663, difficulty_hard=0, difficulty_divine=5, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7748542, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750879, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7773167, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=4042206, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750889, difficulty_hard=3, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=3271143, difficulty_hard=1, difficulty_divine=1, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=427023, difficulty_hard=1, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750165, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750171, difficulty_hard=2, difficulty_divine=2, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750090, difficulty_hard=3, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7750209, difficulty_hard=2, difficulty_divine=4, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7773175, difficulty_hard=2, difficulty_divine=3, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},{code=7773177, difficulty_hard=4, difficulty_divine=0, completed_hard=0, completed_divine=0, rounds_hard=0, rounds_divine=0},}
-local done = false
-local commited = false
-
-function eventLoop()
-	if not done then
-		MDHelper.trySync()
-	end
-end
 
 function eventFileLoaded(file, data)
     local success, result = pcall(MDHelper.eventFileLoaded, file, data)
@@ -1493,19 +1138,13 @@ function eventFileLoaded(file, data)
 end
 
 function eventFileParsed()
-	if not done then
-		print("parsed, committing")
-		MDHelper.commit("cass", TsmModuleData.OP_REPLACE_MAPS, maps)
-		commited = true
-	end
+	print("parsed, committing")
 end
 
 function eventFileSaved(n)
-	if commited then
-		done = true
-	end
 	print("file "..n.." was saved!")
     tfm.exec.chatMessage("file "..n.." was saved!")
 end
 
+MDHelper.commit("TSM", TsmModuleData.OP_REPLACE_MAPS, maps)
 MDHelper.trySync()

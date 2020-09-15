@@ -102,8 +102,9 @@ name_butter_fingers = [[Butter Fingers]]
 desc_butter_fingers = [[Allows you and your partner to undo your last spawned object by pressing U up to two times.]]
 
 name_snail_nail = [[Snail Nail]]
-desc_snail_nail = [[ncreases building time limit by 30 seconds. More time for our nails to arrive.]]
+desc_snail_nail = [[Increases building time limit by 30 seconds. More time for our nails to arrive.]]
 
 ## Lobby window
 chosen_shaman = [[You’ve been chosen to pair up for the next round!]]
 shamans_choosing = [[Shamans are now choosing the gameplay...]]
+of_original_xp = [[<p align="center"><i><J>%s: %s %s of original exp.]]
