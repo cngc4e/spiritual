@@ -204,7 +204,7 @@ do
                         map.code, map.difficulty_hard, map.difficulty_divine,
                         map.completed_hard, map.rounds_hard, map.completed_divine, map.rounds_divine)
             end,
-        }
+        },
         tfmcmd.Main {
             name = "skip",
             allowed = LEVEL_STAFF,

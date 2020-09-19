@@ -32,6 +32,15 @@ do
                 op = self.logobj
             }
             md_log[#md_log+1] = entry
+            -- maximum 100 entries, slice last 100 records if maxed.
+            if #md_log > 100 then
+                local new_ml, sz = {}, 0
+                for i = #md_log - 99, #md_log do
+                    sz = sz + 1
+                    new_ml[sz] = md_log[i]
+                end
+                db.module_log = new_ml
+            end
             return MDHelper.MERGE_OK
         end,
         logobject = function(self)
