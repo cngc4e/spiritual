@@ -2,6 +2,7 @@
 @include libs/bitset.lua
 @include libs/boolset.lua
 @include libs/db2.lua
+@include libs/db2ext.lua
 @include libs/XMLParse.lua
 
 local DEFAULT_MAX_PLAYERS = 50

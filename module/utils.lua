@@ -76,3 +76,19 @@ local sendLongChatMessage = function(msg, pn)
         tfm.exec.chatMessage(msg:sub(#msg*(i/times)+1, #msg*((i+1)/times)), pn)
     end
 end
+
+-- Returns is_valid (bool), valid_name (string?)
+local validName = function(pn)
+    local name, tag
+    if not pn:find('#') then
+        tag = "0000"
+        if pn:find("(%S+)") then
+            name = pn
+        end
+    else
+        name, tag = data:match("(%S+)#(%d+)")
+    end
+    if not name or #name > 20 then return false end
+    if not tag or #tag ~= 4 then return false end
+    return true, name .. "#" .. tag
+end

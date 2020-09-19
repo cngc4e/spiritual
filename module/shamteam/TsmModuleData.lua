@@ -38,7 +38,7 @@ do
                 db2.VarChar{ key="reason", size=100 },
                 db2.UnsignedInt{ key="time", size=5 },  -- in seconds
             }}},
-            db2.VarDataList{ key="staff", size=100, datatype=db2.VarChar{ size=25 }},
+            db2.VarDataList{ key="staff", size=100, datatype=db2.TfmUsername{} },
             db2.VarDataList{ key="module_log", size=100, datatype=db2.Object{schema={
                 db2.VarChar{ key="committer", size=25 },
                 db2.UnsignedInt{ key="time", size=5 },  -- in seconds
