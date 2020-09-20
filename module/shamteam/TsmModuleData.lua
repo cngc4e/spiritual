@@ -34,7 +34,7 @@ do
                 db2.UnsignedInt{ key="rounds_divine", size=2 },
             }}},
             db2.VarDataList{ key="banned", size=1000, datatype=db2.Object{schema={
-                db2.VarChar{ key="name", size=25 },
+                db2.TfmUsername{ key="name" },
                 db2.VarChar{ key="reason", size=100 },
                 db2.UnsignedInt{ key="time", size=5 },  -- in seconds
             }}},
@@ -61,16 +61,16 @@ do
                     }},
                     [TsmModuleData.OP_REPLACE_MAPS] = db2.Object{schema={}},
                     [TsmModuleData.OP_ADD_BAN] = db2.Object{schema={
-                        db2.VarChar{ key="name", size=25 },
+                        db2.TfmUsername{ key="name" },
                     }},
                     [TsmModuleData.OP_REMOVE_BAN] = db2.Object{schema={
-                        db2.VarChar{ key="name", size=25 },
+                        db2.TfmUsername{ key="name" },
                     }},
                     [TsmModuleData.OP_ADD_STAFF] = db2.Object{schema={
-                        db2.VarChar{ key="name", size=25 },
+                        db2.TfmUsername{ key="name" },
                     }},
                     [TsmModuleData.OP_REMOVE_STAFF] = db2.Object{schema={
-                        db2.VarChar{ key="name", size=25 },
+                        db2.TfmUsername{ key="name" },
                     }},
                 }},
             }}},
