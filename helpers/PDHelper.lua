@@ -36,7 +36,13 @@ do
         if data == "" then
             global_pd = {modules={}}
         else
-            global_pd = db2.decode(GLOBAL_PD_SCHEMA, data)
+            local success, ret = pcall(db2.decode, GLOBAL_PD_SCHEMA, data)
+            if not success then
+                global_pd = {modules={}}
+                print("corrupt global PD "..pn)
+            else
+                global_pd = ret
+            end
         end
 
         local modules = global_pd.modules
@@ -53,7 +59,13 @@ do
 
         local module_pd = nil
         if encoded_module_pd then
-            module_pd = db2.decode(mdSchema, encoded_module_pd)
+            local success, ret = pcall(db2.decode, mdSchema, encoded_module_pd)
+            if not success then
+                module_pd = table_copy(defaultData)
+                print("corrupt module PD "..pn)
+            else
+                module_pd = ret
+            end
             print("load existing "..pn)
         else
             module_pd = table_copy(defaultData)

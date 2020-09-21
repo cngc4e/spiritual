@@ -66,6 +66,7 @@ no_more_solid_balloon = [[<J>Ξ You may not spawn any more solid balloons.]]
 
 error = [[error]]
 diff_range_error = [[range must have a value of 1-%s and have a difference of at least 1]]
+corrupt_player_data = [[Your data appears to be corrupted; it will be reset. (err code: %s)]]
 
 antilag_warn = [[<ROSE>Hey there, you appear to have lagged. You should consider enabling AntiLag via the options menu (press O).]]
 antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enabled AntiLag for you.]]

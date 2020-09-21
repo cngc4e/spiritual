@@ -27,6 +27,8 @@ do
         local success, result = pcall(PDHelper.onPdLoaded, pn, data)
         if not success then
             print(string.format("Exception encountered in eventPlayerDataLoaded (%s): %s", pn, result))
+        elseif db2.info ~= db2.INFO_OK and players[pn] then
+            players[pn]:errorTlChatMsg("corrupt_player_data", db2.info or -2)
         end
     end)
 end
