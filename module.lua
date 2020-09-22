@@ -101,9 +101,9 @@ function eventKeyboard(pn, k, d, x, y)
 end
 
 function eventLoop(elapsed, remaining)
+    Events.doEvent("Loop", elapsed, remaining) 
     map_sched.run()
     TimedTask.onLoop()
-    Events.doEvent("Loop", elapsed, remaining)  
 end
 
 function eventNewGame()
