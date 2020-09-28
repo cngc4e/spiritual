@@ -1,7 +1,7 @@
 -- db2 type extensions
 do
     local numbertobytes = db2.numbertobytes
-    local bytestonumber = db2.bytestonumber
+    local nbytestonumber = db2.nbytestonumber
     local Datatype = db2.Datatype
 
     db2.TfmUsername = Datatype {
@@ -24,12 +24,12 @@ do
             local name_len , name , tag
 
             -- 1 byte used for username size
-            name_len = bytestonumber( enc:sub( ptr , ptr ) , bpb )
+            name_len = nbytestonumber( { enc:byte( ptr , ptr ) } , bpb )
             name = enc:sub( ptr + 1 , ptr + name_len )
             ptr = ptr + name_len + 1
 
             -- 2 bytes used for username tag
-            tag = bytestonumber( enc:sub( ptr , ptr + 1 ) , bpb )
+            tag = nbytestonumber( { enc:sub( ptr , ptr + 1 ) } , bpb )
             ptr = ptr + 2
 
             return string.format( "%s#%04d" , name , tag ) , ptr

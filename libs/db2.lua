@@ -9,7 +9,7 @@ do
     -- database2 can decode and encode database1 strings, but encoding to db1 is discouraged
 
 	db2 = {}
-	db2.VERSION = "1.3"
+	db2.VERSION = "1.3-1"
 	
 	local error = error
 	
@@ -29,35 +29,17 @@ do
 	db2.INFO_GENERICERROR = 8
 	db2.INFO_DECODE_GENERICERROR = 9
 	-- END INFO ENUMS --
-	
-	local lbtn = function( str , b ) -- big-endian byte to number
-		local n = 0
-		local mult = 2^b
-		for i = 1 , str:len() do
-			n = n * mult + str:byte( i )
-		end
-		return n
-	end
-	local lntb = function( num , b , expected_length ) -- legacy; shouldn't be needed here actually
-		local str = ""
-		local mult = 2^b
-		while num ~= 0 do
-			local x = num % mult
-			str = string.char( x ) .. str
-			num = math.floor( num / mult )
-		end
-		while str:len() < expected_length do str = string.char( 0 ) .. str end
-		return str
-	end
-	local bytestonumber = function( str , bpb )
+
+	local nbytestonumber = function( bytes , bpb )
 		local n = 0
 		local mult = 2^bpb
-		local strlen = str:len()
-		local bytes = {str:byte(1,strlen)}
-		for i = 1 , strlen do
+		for i = 1 , #bytes do
 			n = n + bytes[i]*(mult^(i-1))
 		end
 		return n
+	end
+	local bytestonumber = function( str , bpb )
+		return nbytestonumber( {str:byte(1, -1)} , bpb )
 	end
 	local strchar = {}
 	for i = 0 , 2^8 - 1 do
@@ -73,7 +55,6 @@ do
 		end
 		return table.concat( t )
 	end
-	local islegacy = false
 	
 	--local datatypeCopy = function(  ) ------- WIP
 	
@@ -116,7 +97,7 @@ do
 			return numbertobytes( data , bpb , o.__bytes )
 		end,
 		decode = function( o , enc , ptr , bpb )
-			local r = bytestonumber( enc:sub( ptr , ptr + o.__bytes - 1 ) , bpb )
+			local r = nbytestonumber( { enc:byte( ptr , ptr + o.__bytes - 1 ) } , bpb )
 			ptr = ptr + o.__bytes
 			return r , ptr
 		end
@@ -253,7 +234,7 @@ do
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local b2 , b1 = enc:byte( ptr + 6 , ptr + 7 )
-			local b38 = enc:sub( ptr , ptr + 5 )
+			local b38 = { enc:byte( ptr , ptr + 5 ) }
 			ptr = ptr + 8
 			
 			local fullbits=  2^bpb - 1
@@ -266,7 +247,7 @@ do
 			local bytesep = 2^bpb
 			
 			local expo = ( b1 % msb ) * 16 + math.floor( b2 / top4msb )
-			local mant = math.ldexp( ( b2 % top4msb ) * ( bytesep ^ 6 ) + bytestonumber( b38 , bpb ) , -( 7 * bpb - 4 ) )
+			local mant = math.ldexp( ( b2 % top4msb ) * ( bytesep ^ 6 ) + nbytestonumber( b38 , bpb ) , -( 7 * bpb - 4 ) )
 			
 			if expo == fullexpo then
 				if mant > 0 then
@@ -305,7 +286,7 @@ do
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local lsz = math.ceil(o.__nbits/bpb)
-			local len = bytestonumber( enc:sub( ptr , ptr + lsz - 1 ) , bpb )
+			local len = nbytestonumber( { enc:byte( ptr , ptr + lsz - 1 ) } , bpb )
 			ptr = ptr + lsz + len
 			return enc:sub( ptr - len , ptr - 1 ) , ptr
 		end
@@ -406,7 +387,7 @@ do
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local lsz = math.ceil(o.__nbits/bpb)
-			local num = bytestonumber( enc:sub( ptr , ptr + lsz - 1 ) , bpb )
+			local num = nbytestonumber( { enc:byte( ptr , ptr + lsz - 1 ) } , bpb )
 			local r = {}
 			local nr = 0
 			local bssz = math.ceil( num / bpb )
@@ -448,7 +429,7 @@ do
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local lsz = math.ceil(o.__nbits/bpb)
-			local n = bytestonumber( enc:sub( ptr , ptr + lsz - 1 ) , bpb ) -- size of list
+			local n = nbytestonumber( { enc:byte( ptr , ptr + lsz - 1 ) } , bpb ) -- size of list
 			ptr = ptr + lsz
 			local out = {}
 			for i = 1 , n do
@@ -514,7 +495,7 @@ do
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local lsz = math.ceil(o.__nbits/bpb)
-			local n = bytestonumber( enc:sub( ptr , ptr + lsz - 1 ) , bpb ) -- size of list
+			local n = nbytestonumber( { enc:byte( ptr , ptr + lsz - 1 ) } , bpb ) -- size of list
 			ptr = ptr + lsz
 			local out = {}
 			for i = 1 , n do
@@ -655,44 +636,16 @@ do
 		end
 	}
 	
-	local togglelegacy = function()
-		local a , b = bytestonumber , numbertobytes
-		bytestonumber , numbertobytes = lbtn , lntb
-		lbtn , lntb = a , b
-		islegacy = not islegacy
-	end
-	
-	local checklegacy = function() -- maybe an error occurred while encoding/decoding in legacy mode
-		if islegacy then togglelegacy() end
-	end
-	
-	local legacy = function( f , ... )
-		togglelegacy()
-		local r = f( ... )
-		togglelegacy()
-		return r
-	end
-	
 	local function encode( schema , data , params ) -- schema , data
 		db2.info = 0
-		--checklegacy()
 		
 		params = params or {}
 		local USE_SETTINGS = params.USE_SETTINGS or true
 		local USE_EIGHTBIT = params.USE_EIGHTBIT or false
 		local USE_MAGIC = params.USE_MAGIC or true
 		local USE_VERSION = params.USE_VERSION
-		local USE_LEGACY = params.USE_LEGACY
 		local VERSION = params.VERSION or schema.VERSION
-		
-		if USE_LEGACY then
-			return legacy( encode , schema , data , {
-				USE_SETTINGS = false,
-				USE_EIGHTBIT = USE_EIGHTBIT,
-				USE_MAGIC = false,
-				USE_VERSION = USE_VERSION or 2
-			} )
-		end
+
 		if params.USE_SCHEMALIST then db2.info = 3 return error("db2: encode: Cannot treat schema as a list",2) end
 		
 		local bpb = USE_EIGHTBIT and 8 or 7
@@ -712,23 +665,12 @@ do
 	
 	local function decode( t , enc , params )
 		db2.info = 0
-		--checklegacy()
 		
 		params = params or {}
 		local USE_SETTINGS = params.USE_SETTINGS or true
 		local USE_EIGHTBIT = params.USE_EIGHTBIT or false
 		local USE_MAGIC = params.USE_MAGIC or true
 		local USE_VERSION = params.USE_VERSION or nil
-		local USE_LEGACY = params.USE_LEGACY
-		
-		if USE_LEGACY then
-			return legacy( decode , t , enc , {
-				USE_SETTINGS = false,
-				USE_EIGHTBIT = USE_EIGHTBIT,
-				USE_MAGIC = false,
-				USE_VERSION = USE_VERSION or 2
-			} )
-		end
 		
 		local bpb = USE_EIGHTBIT and 8 or 7
 		
@@ -749,13 +691,13 @@ do
 		end
 		
 		if USE_MAGIC then
-			local n = bytestonumber( enc:sub(ptr,ptr+1) , bpb )
+			local n = nbytestonumber( { enc:byte(ptr,ptr+1) } , bpb )
 			if ( not ( n % 32768 == 9224 ) ) or ( n > 32768 and n - 32768 ~= 9224 ) then db2.info = 4 return error("db2: decode: Invalid magic number",2) end
 			
 			ptr = ptr + 2
 		end
 		
-		local vn = bytestonumber( enc:sub(ptr,ptr+vl-1) , bpb )
+		local vn = nbytestonumber( { enc:byte(ptr,ptr+vl-1) } , bpb )
 		ptr = ptr + vl
 		
 		local schema = vl == 0 and ( not params.USE_SCHEMALIST and t or t[0] ) or t[vn]
@@ -776,7 +718,6 @@ do
 	
 	local test = function( enc , params )
 		db2.info = 0
-		--checklegacy()
 		
 		params = params or {}
 		local USE_SETTINGS = params.USE_SETTINGS or true
@@ -800,7 +741,7 @@ do
 		end
 		
 		if USE_MAGIC then
-			local n = bytestonumber( enc:sub(ptr,ptr+1) , bpb )
+			local n = nbytestonumber( { enc:byte(ptr,ptr+1) } , bpb )
 			if ( not ( n % 32768 == 9224 ) ) or ( n > 32768 and n - 32768 ~= 9224 ) then db2.info = 4 return false end
 			
 			ptr = ptr + 2
@@ -808,6 +749,7 @@ do
 		
 		return true
 	end
+
 	local errorfunc = function( f )
 		db2.info = 0
 		
@@ -826,6 +768,7 @@ do
 	db2.test = test
 	db2.errorfunc = errorfunc
 	db2.bytestonumber = bytestonumber
+	db2.nbytestonumber = nbytestonumber
 	db2.numbertobytes = numbertobytes
 	db2.lbtn = lbtn
 	db2.lntb = lntb
