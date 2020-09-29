@@ -62,7 +62,14 @@ TsmRotation.doLobby = function()
 
     if not first then
         tfm.exec.setGameTime(5)
-        TimedTask.add(5000, TsmRotation.doLobby)
+        --[[
+            it often happens where a newly created room does not have any players at
+            this point. in such a case, reload the lobby ASAP until all the players
+            have initialised. I'm not exactly sure but 10ms minimum *should* be plenty
+            enough time for all players in the room to finish triggerring their
+            eventNewPlayer.. :fingers_crossed:
+        ]]--
+        TimedTask.add(module_started and 5000 or 10, TsmRotation.doLobby)
     else
         expect_sham1, expect_sham2 = first.name, second and second.name
         -- apply overrides
@@ -97,14 +104,20 @@ TsmRotation.signalNgAndHandover = function()
 
     if is_awaiting_lobby then
         if mapcode ~= LOBBY_MAPCODE then
-            map_sched.load(LOBBY_MAPCODE)
+            if module_started then
+                map_sched.load(LOBBY_MAPCODE)
+            end
             return false
         end
     elseif awaiting_mapcode == nil then
-        TsmRotation.doLobby()
+        if module_started then
+            TsmRotation.doLobby()
+        end
         return false
     elseif awaiting_mapcode ~= mapcode then
-        map_sched.load(awaiting_mapcode)
+        if module_started then
+            map_sched.load(awaiting_mapcode)
+        end
         return false
     end
 

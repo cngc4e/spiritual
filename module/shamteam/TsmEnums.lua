@@ -56,8 +56,8 @@ local LINKS = {
 }
 
 --- AntiLag ping (ms) thresholds
-local ANTILAG_WARN_THRESHOLD = 690
-local ANTILAG_FORCE_THRESHOLD = 1100
+local ANTILAG_WARN_THRESHOLD = 1400 -- 690
+local ANTILAG_FORCE_THRESHOLD = 3000 -- 1100
 
 --- Difficulty level
 local HIGHEST_DIFFICULTY = 5
