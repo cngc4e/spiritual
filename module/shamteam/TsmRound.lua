@@ -110,11 +110,6 @@ do
             self.spawnlist[name] = { _len = 0 }
         end
 
-        showMapInfo(self)
-        self:updateMapTitle()
-        self:updateTurnUI()
-        self:updateCircle()
-
         tfm.exec.disableAfkDeath(false)
         tfm.exec.disableMortCommand(false)
         tfm.exec.disablePrespawnPreview(self.mods[MOD_TELEPATHY] == true)
@@ -130,6 +125,12 @@ do
     
         -- All set up and ready to go!
         self.phase = PHASE_READY
+
+        -- Post-ready stuff
+        showMapInfo(self)
+        self:updateMapTitle()
+        self:updateTurnUI()
+        self:updateCircle()
     end
 
     TsmRound.onLobby = function(self)
@@ -174,7 +175,7 @@ do
                     -- Score 0
                     p:setScore(0)
                 elseif not p:isExcluded() then
-                    p:setScore(1, add)
+                    p:setScore(1, true)
                 end
             end
             -- add map completion, player xp, etc

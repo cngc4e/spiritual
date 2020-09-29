@@ -3,10 +3,6 @@ do
         system.bindMouse(pn, true)
     end)
 
-    Events.hookEvent("PlayerLeft", function(pn)
-        players[pn] = nil
-    end)
-
     Events.hookEvent("Loop", function(elapsed, remaining)
         MDHelper.trySync()
         PDHelper.onLoop()

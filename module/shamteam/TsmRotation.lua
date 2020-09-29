@@ -53,10 +53,13 @@ end
 TsmRotation.doLobby = function()
     local first, second
     for name, p in pairs(players) do
-        if not p:isExcluded()
-                and (not first or p.score >= first.score) then
-            second = first
-            first = p
+        if not p:isExcluded() then
+            if not first or p.score > first.score then
+                second = first
+                first = p
+            elseif not second or p.score > second.score then
+                second = p
+            end
         end
     end
 
@@ -130,11 +133,14 @@ TsmRotation.signalNgAndHandover = function()
     local sh, shk = TsmRound.getShamans()
     local recheck = false
     for i = 1, #sh do
-        if (expect_sham1 and not sh[i] == expect_sham1)
-                or (expect_sham2 and not sh[i] == expect_sham2) then
+        if (expect_sham1 and sh[i] ~= expect_sham1)
+                and (expect_sham2 and sh[i] ~= expect_sham2) then
             -- unexpected shaman
             recheck = true
             tfm.exec.setShaman(sh[i], false)
+            -- TODO: a more elegant way to put mouse back to spawn?
+            tfm.exec.killPlayer(sh[i])
+            tfm.exec.respawnPlayer(sh[i])
             print("Unexpected shaman: " .. sh[i])
         end
     end
@@ -149,7 +155,10 @@ TsmRotation.signalNgAndHandover = function()
     end
 
     if recheck then
-        ret.shamans, ret.shamans_key = TsmRound.getShamans()
+        ret.shamans, ret.shamans_key = {expect_sham1, expect_sham2}, {}
+        for i = 1, #ret.shamans do
+            ret.shamans_key[ret.shamans[i]] = true
+        end
         print(string.format("Unexpected shamans caught - The expected ones are: %s & %s",
                 expect_sham1, expect_sham2))
     else

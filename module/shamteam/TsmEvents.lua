@@ -28,6 +28,20 @@ do
         end
     end)
 
+    Events.hookEvent("PlayerLeft", function(pn)
+        local is_shaman = players[pn] and ThisRound.is_lobby and players[pn]:isRoundShaman()
+
+        players[pn] = nil
+
+        if is_shaman then
+            for name, player in pairs(players) do
+                player:tlChatMsg("shaman_left_lobby", pnDisp(pn))
+            end
+            -- reload lobby
+            TsmRotation.doLobby()
+        end
+    end)
+
     local handleDeathForRotate = function(pn, win)
         if not ThisRound.is_lobby then
             if pL.alive:len() == 0 then

@@ -71,6 +71,8 @@ corrupt_player_data = [[Your data appears to be corrupted; it will be reset. (er
 antilag_warn = [[<ROSE>Hey there, you appear to have lagged. You should consider enabling AntiLag via the options menu (press O).]]
 antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enabled AntiLag for you.]]
 
+shaman_left_lobby = [[<J><b>Uh oh.</b> It looks like the Shaman <CH>%s <J>has decided to sneak away from their duties..]]
+
 ## Map info
 map_info = [[<ROSE>[Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
 hard = [[Hard]]
