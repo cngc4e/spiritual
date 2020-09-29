@@ -280,9 +280,9 @@ do
 		end,
 		encode = function( o , data , bpb )
 			if type(data) ~= "string" then db2.info = 1 return error( "db2: VarChar: encode: Expected string, found " .. type(data) ) end
-			if data:len() > o.__sz then db2.info = 2 return error( "db2: VarChar: encode: Data is bigger than is allocated for" ) end
+			if #data > o.__sz then db2.info = 2 return error( "db2: VarChar: encode: Data is bigger than is allocated for" ) end
 			local lsz = math.ceil(o.__nbits/bpb) -- length of size
-			return numbertobytes( data:len() , bpb , lsz ) .. data
+			return numbertobytes( #data , bpb , lsz ) .. data
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local lsz = math.ceil(o.__nbits/bpb)
@@ -304,8 +304,8 @@ do
 		end,
 		encode = function( o , data , bpb )
 			if type(data) ~= "string" then db2.info = 1 return error( "db2: FixedChar: encode: Expected string, found " .. type(data) ) end
-			if data:len() > o.__sz then db2.info = 2 return error( "db2: FixedChar: encode: Data is bigger than is allocated for" ) end
-			return data .. string.char(0):rep( o.__sz - data:len() )
+			if #data > o.__sz then db2.info = 2 return error( "db2: FixedChar: encode: Data is bigger than is allocated for" ) end
+			return data .. string.char(0):rep( o.__sz - #data )
 		end,
 		decode = function( o , enc , ptr , bpb )
 			local r = enc:sub( ptr , ptr + o.__sz - 1 )
@@ -707,11 +707,11 @@ do
 		local dat = {}
 		for i = 1 , #schema do
 			dat[ schema[i].key ] , ptr = schema[i]:decode( enc , ptr , bpb )
-			if ptr > enc:len() + 1 then db2.info = 6 return error("db2: decode: End of string reached while parsing",2) end
+			if ptr > #enc + 1 then db2.info = 6 return error("db2: decode: End of string reached while parsing",2) end
 			if db2.info ~= 0 then return end
 		end
 		
-		if ptr ~= enc:len() + 1 then db2.info = 6 return error("db2: decode: End of schema reached while parsing",2) end
+		if ptr ~= #enc + 1 then db2.info = 6 return error("db2: decode: End of schema reached while parsing",2) end
 		
 		return dat
 	end
