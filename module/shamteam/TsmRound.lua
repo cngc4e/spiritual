@@ -6,7 +6,7 @@ do
     TsmRound = setmetatable({}, IRound)
     TsmRound.__index = TsmRound
 
-    local getShamans = function()
+    TsmRound.getShamans = function()
         local shams, shams_key = {}, {}
         for name, p in pairs(room.playerList) do
             if p.isShaman then
@@ -14,7 +14,8 @@ do
                 shams_key[name] = true
             end
         end
-        return shams, shams_key
+        -- randomise the order of sham1 and sham2
+        return table_shuffle(shams), shams_key
     end
 
     local showMapInfo = function(self)
@@ -24,8 +25,9 @@ do
                 shamanstr = shamanstr .. " - " .. pnDisp(self.shamans[2])
             end
             local t_str = {
-                player:tlFmt("map_info", self.mapcode, self.original_author or self.author, self.difficulty,
-                self.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
+                player:tlFmt("map_info",
+                        self.mapcode, self.original_author or self.author, self.difficulty,
+                        self.mode == TSM_HARD and player:tlFmt("hard") or player:tlFmt("divine")),
                 player:tlFmt("shaman_info", shamanstr)
             }
 
@@ -87,7 +89,10 @@ do
         local key = {[TSM_HARD] = "difficulty_hard", [TSM_DIV] = "difficulty_divine"}
         self.difficulty = dbmap and dbmap[key[self.mode]] or -1
     
-        self.shamans, self.shamans_key = getShamans()
+        if not self.shamans or not self.shamans_key then
+            self.shamans, self.shamans_key = self.getShamans()
+        end
+
         self.st_index = 1  -- current shaman's turn, index of self.shamans
         self.arrow_count = 0
         self.sballoon_count = 0
@@ -129,7 +134,9 @@ do
 
     TsmRound.onLobby = function(self)
         self.start_epoch = os.time()
-        self.shamans, self.shamans_key = getShamans()
+        if not self.shamans or not self.shamans_key then
+            self.shamans, self.shamans_key = self.getShamans()
+        end
         self.chosen_mode = TSM_HARD
         self.chosen_diff = {1, 5}
         self.chosen_mods = boolset:new()
@@ -158,11 +165,16 @@ do
             TsmRotation.setMods(self.chosen_mods)
             TsmRotation.doRotate()
         else
-            -- Show back GUI for shamans
-            for i = 1, #self.shamans do
-                local name = self.shamans[i]
-                if players[name] and players[name].toggles[OPT_GUI] then
-                    TsmWindow.open(WINDOW_GUI, name)
+            for name, p in pairs(players) do
+                if p:isRoundShaman() then
+                    -- Show back GUI for shamans
+                    if p.toggles[OPT_GUI] then
+                        TsmWindow.open(WINDOW_GUI, name)
+                    end
+                    -- Score 0
+                    p:setScore(0)
+                elseif not p:isExcluded() then
+                    p:setScore(1, add)
                 end
             end
             -- add map completion, player xp, etc

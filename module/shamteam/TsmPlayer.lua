@@ -56,12 +56,28 @@ do
         end
     end
 
+    TsmPlayer.isRoundShaman = function(self)
+        return ThisRound:isShaman(self.name)
+    end
+
+    TsmPlayer.isExcluded = function(self)
+        return self.banned or self.spectating
+    end
+
+    TsmPlayer.setScore = function(self, score, add)
+        self.score = add and (self.score + score) or score
+        tfm.exec.setPlayerScore(self.name, self.score)
+    end
+
     TsmPlayer.new = function(self, pn)
         local data = Player:newData(pn)
 
         data.pdata_loaded = false
+        data.banned = false
+        data.spectating = false
         data.toggles = boolset:new():set(OPT_GUI, OPT_CIRCLE)
         data.exp = 0
+        data.score = 0
 
         return setmetatable(data, self)
     end

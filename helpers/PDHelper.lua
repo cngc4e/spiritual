@@ -39,7 +39,7 @@ do
             local success, ret = pcall(db2.decode, GLOBAL_PD_SCHEMA, data)
             if not success then
                 global_pd = {modules={}}
-                print("corrupt global PD "..pn)
+                print(pn .. " corrupt global PD: " .. ret)
             else
                 global_pd = ret
             end
@@ -62,7 +62,7 @@ do
             local success, ret = pcall(db2.decode, mdSchema, encoded_module_pd)
             if not success then
                 module_pd = table_copy(defaultData)
-                print("corrupt module PD "..pn)
+                print(pn .. " corrupt module PD: " .. ret)
             else
                 module_pd = ret
             end

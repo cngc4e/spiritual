@@ -53,6 +53,10 @@ do
                     end
                 end
             end
+            local p = players[pn]
+            if p and not p:isRoundShaman() then
+                p:setScore(win and 10 or 1, true)
+            end
         end
     end
 
@@ -107,7 +111,7 @@ do
     end)
 
     Events.hookEvent("NewGame", function()
-        local valid, vars = TsmRotation.signalNgAndRead()
+        local valid, vars = TsmRotation.signalNgAndHandover()
         if not valid then
             print(room.currentMap.." unexpected map loaded, retrying.")
             return

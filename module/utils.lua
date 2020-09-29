@@ -8,6 +8,11 @@ local function math_pythag(x1, y1, x2, y2, r)
 	return x*x+y*y<r*r
 end
 
+local function math_chance(chance)
+	local r = math.random(1, 100)
+	return r < (chance or 50)
+end
+
 local function string_split(str, delimiter)
     local delimiter,a = delimiter or ',', {}
     for part in str:gmatch('[^'..delimiter..']+') do
@@ -24,17 +29,30 @@ local function table_copy(tbl)
     return out
 end
 
-local function dumptbl (tbl, indent)
+-- shuffle a list using the Fisher–Yates shuffle algorithm
+local function table_shuffle(tbl)
+    local mr = math.random
+    for i = #tbl, 2, -1 do
+      local j = mr(i)
+      tbl[i], tbl[j] = tbl[j], tbl[i]
+    end
+    return tbl
+end
+
+local function dumptbl (tbl, indent, cb)
     if not indent then indent = 0 end
+    if not cb then cb = print end
     for k, v in pairs(tbl) do
         formatting = string.rep("  ", indent) .. k .. ": "
         if type(v) == "table" then
-            print(formatting)
-            dumptbl(v, indent+1)
+            cb(formatting)
+            dumptbl(v, indent+1, cb)
         elseif type(v) == 'boolean' then
-            print(formatting .. tostring(v))
+            cb(formatting .. tostring(v))
+        elseif type(v) == "function" then
+            cb(formatting .. "()")
         else
-            print(formatting .. v)
+            cb(formatting .. v)
         end
     end
 end
