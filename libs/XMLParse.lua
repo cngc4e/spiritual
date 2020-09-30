@@ -13,17 +13,20 @@ do
     XMLNode.traverse_first = function( d , ... )
         -- XMLNode d
         -- string ...traversalpath
-        -- return XMLNode = result
+        -- return XMLNode? = result
         local res = d
         local tpath = { ... }
         for i = 1 , #tpath do
+            local found = nil
             for k = 1 , res.children do
                 local c = res.child[k]
                 if c.name == tpath[i] then
-                    res = c
+                    found = c
                     break
                 end
             end
+            if not found then return nil end
+            res = found
         end
         return res
     end

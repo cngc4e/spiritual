@@ -74,11 +74,15 @@ do
             self.opportunist = true
         end
         if xo_prop.SEPARATESHAM then
-            self.seperate_sham = true
+            self.separate_sham = true
         end
         if xo_prop.ORIGINALAUTHOR then
             self.original_author = xo_prop.ORIGINALAUTHOR
         end
+
+        local xo_D = xmlobj:traverse_first("Z", "D")
+        self.DC1 = xo_D:traverse_first("DC")
+        self.DC2 = xo_D:traverse_first("DC2")
     end
 
     TsmRound.onNew = function(self)
@@ -106,6 +110,13 @@ do
             tfm.exec.lowerSyncDelay(name)
             -- Set shaman mode
             self:setCorrectShamanMode(name)
+            -- Separate shaman tag
+            if self.separate_sham then
+                local dc = self["DC" .. i]
+                if dc and dc.X and dc.Y then
+                    tfm.exec.movePlayer(name, dc.X, dc.Y)
+                end
+            end
             -- Init spawnlist
             self.spawnlist[name] = { _len = 0 }
         end
