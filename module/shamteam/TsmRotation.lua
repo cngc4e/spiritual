@@ -23,7 +23,7 @@ local choose_map = function(mode, diff)
 end
 
 TsmRotation.overrideMap = function(mapcode)
-    custom_map = int_mapcode(mapcode)
+    custom_map = mapcode
 end
 
 TsmRotation.overrideMode = function(mode)
@@ -67,7 +67,7 @@ TsmRotation.doLobby = function()
         tfm.exec.setGameTime(5)
         --[[
             it often happens where a newly created room does not have any players at
-            this point. in such a case, reload the lobby ASAP until all the players
+            this point. in such a case, reload the lobby ASAP after all the players
             have initialised. I'm not exactly sure but 10ms minimum *should* be plenty
             enough time for all players in the room to finish triggerring their
             eventNewPlayer.. :fingers_crossed:
@@ -76,13 +76,17 @@ TsmRotation.doLobby = function()
     else
         expect_sham1, expect_sham2 = first.name, second and second.name
         -- apply overrides
-        expect_sham1 = custom_sham1 or expect_sham1
-        expect_sham2 = custom_sham2 or expect_sham2
+        if custom_sham1 and players[custom_sham1] and not players[custom_sham1]:isExcluded() then
+            expect_sham1 = custom_sham1
+        end
+        if custom_sham2 and players[custom_sham2] and not players[custom_sham2]:isExcluded() then
+            expect_sham2 = custom_sham2
+        end
 
         -- set highest score for the two expected shams so autoshaman hopefully picks them up the next round
         local ss = first.score + 10
-        first:setScore(ss)
-        if second then second:setScore(ss) end
+        players[expect_sham1]:setScore(ss)
+        if expect_sham2 then players[expect_sham2]:setScore(ss) end
         
         -- reset overrides
         custom_sham1, custom_sham2 = nil, nil

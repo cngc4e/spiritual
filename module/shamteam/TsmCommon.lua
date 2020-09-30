@@ -23,3 +23,12 @@ local expDisp = function(n, addColor)
     if not addColor then color = "" end
     return color..sign..math.abs(n*100).."%"
 end
+
+local sendChatMessageStaff = function(msg, ...)
+    msg = "[Staff] " .. string.format(msg, ...)
+    for name, p in pairs(players) do
+        if DEVS[name] or MODULE_MANAGERS[name] or TsmModuleData.isStaff(name) then
+            p:chatMsg(msg)
+        end
+    end
+end

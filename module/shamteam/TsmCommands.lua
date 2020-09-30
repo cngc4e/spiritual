@@ -24,6 +24,63 @@ do
             end,
         },
         tfmcmd.Main {
+            name = "queue",
+            aliases = {"npp"},
+            description = "Queues a specified map",
+            allowed = LEVEL_STAFF,
+            args = {
+                tfmcmd.ArgString { },
+                tfmcmd.ArgString { optional = true, lower = true },
+            },
+            func = function(pn, code, mode)
+                local modes = {['thm']=TSM_HARD, ['tdm']=TSM_DIV}
+                if mode then
+                    if not modes[mode] then
+                        players[pn]:chatMsg("<R>error: invalid mode (thm,tdm)")
+                        return
+                    else
+                        TsmRotation.overrideMode(modes[mode])
+                    end
+                end
+                code = int_mapcode(code)
+                if not code then
+                    players[pn]:chatMsg("<R>error: invalid map code")
+                    return
+                end
+                TsmRotation.overrideMap(code)
+                sendChatMessageStaff("%s (mode: %s) will be loaded the next round. (queued by %s)", code, mode or "player-defined", pn)
+            end,
+        },
+        tfmcmd.Main {
+            name = "nextsham",
+            aliases = {"ch"},
+            description = "Choose a shaman the next round",
+            allowed = LEVEL_STAFF,
+            args = {
+                tfmcmd.ArgString { },
+                tfmcmd.ArgString { optional = true },
+            },
+            func = function(pn, sham1, sham2)
+                sham1 = pFind(sham1)
+                if not sham1 then
+                    players[pn]:errorTlChatMsg("no_matched_player", sham1)
+                    return
+                end
+                if sham2 then
+                    sham2 = pFind(sham2)
+                    if not sham2 then
+                        players[pn]:errorTlChatMsg("no_matched_player", sham2)
+                        return
+                    end
+                end
+                if sham2 == sham1 then sham2 = nil end
+
+                TsmRotation.overrideExpectedShaman(sham1, sham2)
+                sendChatMessageStaff("%s%s will be the next shaman(s). (queued by %s)",
+                        sham1, sham2 and " & " .. sham2 or "", pn)
+            end,
+        },
+        tfmcmd.Main {
             name = "liststaff",
             allowed = LEVEL_STAFF,
             func = function(pn)
@@ -42,9 +99,15 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = TsmModuleData.commit(pn, TsmModuleData.ADD_STAFF, target)
+                target = validName(target)
+                if not target then
+                    players[pn]:chatMsg("<R>Invalid target player name.")
+                    return
+                end
+
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.OP_ADD_STAFF, target)
                 if status == MDHelper.MERGE_OK then
-                    players[pn]:chatMsgFmt("%s will be given Staff rights.", target)
+                    sendChatMessageStaff("%s will be given Staff rights. (ordered by %s)", target, pn)
                 else
                     players[pn]:chatMsg(msg)
                 end
@@ -57,7 +120,13 @@ do
             },
             allowed = LEVEL_MANAGER,
             func = function(pn, target)
-                local status, msg = TsmModuleData.commit(pn, TsmModuleData.REMOVE_STAFF, target)
+                target = validName(target)
+                if not target then
+                    players[pn]:chatMsg("<R>Invalid target player name.")
+                    return
+                end
+
+                local status, msg = TsmModuleData.commit(pn, TsmModuleData.OP_REMOVE_STAFF, target)
                 if status == MDHelper.MERGE_OK then
                     players[pn]:chatMsgFmt("%s will be revoked of Staff rights.", target)
                 else
@@ -209,7 +278,9 @@ do
             name = "skip",
             allowed = LEVEL_STAFF,
             func = function(pn)
-                Events.doEvent("TimesUp")
+                if ThisRound.phase < PHASE_TIMESUP then
+                    Events.doEvent("TimesUp", elapsed)
+                end
             end,
         },
         tfmcmd.Main {

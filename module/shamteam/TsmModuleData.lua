@@ -19,6 +19,7 @@ do
     -- pre-computed cache
     local maps_by_diff = {}
     local maps_by_key = {}
+    local staff_cache = {}
     
     -- Module data DB2 schemas
     local MD_SCHEMA = {
@@ -350,7 +351,7 @@ do
             merge = function(self, db)
                 local staff = db.staff
                 for i = 1, #staff do
-                    if staff[i].name == self.pn then
+                    if staff[i] == self.pn then
                         found = true
                         break
                     end
@@ -379,7 +380,7 @@ do
                 local staff = db.staff
                 local found = false
                 for i = 1, #staff do
-                    if staff[i].name == self.pn then
+                    if staff[i] == self.pn then
                         table.remove(staff, i)
                         found = true
                         break
@@ -401,7 +402,7 @@ do
         },
     }
 
-    local pre_compute = function()
+    local precomp_maps = function()
         -- sort maps table for faster lookups
         local maps = MDHelper.getTable("maps")
         maps_by_diff = {
@@ -425,6 +426,13 @@ do
         end
     end
 
+    local precomp_staff = function()
+        local staff = MDHelper.getTable("staff")
+        for i = 1, #staff do
+            staff_cache[staff[i]] = true
+        end
+    end
+
     TsmModuleData.getMapInfo = function(mapcode)
         mapcode = int_mapcode(mapcode)
         if not mapcode then return end
@@ -437,29 +445,35 @@ do
     end
 
     TsmModuleData.isStaff = function(pn)
-        local staff = MDHelper.getTable("staff")
-        for i = 1, #staff do
-            if staff[i] == pn then
-                return true
-            end
-        end
-        return false
+        return staff_cache[pn] == true
     end
 
-    local should_precomp = {
+    local should_precomp_maps = {
         TsmModuleData.OP_ADD_MAP,
         TsmModuleData.OP_REMOVE_MAP,
         TsmModuleData.OP_UPDATE_MAP_DIFF_HARD,
         TsmModuleData.OP_UPDATE_MAP_DIFF_DIVINE
     }
+    local should_precomp_staff = {
+        TsmModuleData.OP_ADD_STAFF,
+        TsmModuleData.OP_REMOVE_STAFF
+    }
     TsmModuleData.commit = function(pn, op_id, a1, a2, a3, a4)
-        local ret = MDHelper.commit(pn, op_id, a1, a2, a3, a4)
-        if should_precomp[op_id] then
-            pre_compute()
+        local ret, msg = MDHelper.commit(pn, op_id, a1, a2, a3, a4)
+        if should_precomp_maps[op_id] then
+            precomp_maps()
         end
-        return ret
+        if should_precomp_staff[op_id] then
+            precomp_staff()
+        end
+        return ret, msg
     end
     
     MDHelper.init(FILE_NUMBER, MD_SCHEMA,
-            LATEST_MD_VER, operations, DEFAULT_DB, not is_official_room, pre_compute)
+            LATEST_MD_VER, operations, DEFAULT_DB, not is_official_room,
+            function()
+                precomp_maps()
+                precomp_staff()
+            end
+    )
 end

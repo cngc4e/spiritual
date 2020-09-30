@@ -29,7 +29,7 @@ do
             ptr = ptr + name_len + 1
 
             -- 2 bytes used for username tag
-            tag = nbytestonumber( { enc:sub( ptr , ptr + 1 ) } , bpb )
+            tag = nbytestonumber( { enc:byte( ptr , ptr + 1 ) } , bpb )
             ptr = ptr + 2
 
             return string.format( "%s#%04d" , name , tag ) , ptr

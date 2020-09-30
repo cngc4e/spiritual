@@ -80,9 +80,11 @@ local function ZeroTag(pn, add) --#0000 removed for tag matches
 end
 
 local function pFind(target, pn)
-    local ign = string.lower(target or ' ')
-    for name in pairs(room.playerList) do
-        if string.lower(name):find(ign) then return name end
+    if target then
+        local ign = target:lower()
+        for name in pL.room:pairs() do
+            if name:lower():find(ign) then return name end
+        end
     end
     if pn then tfm.exec.chatMessage("<R>error: no such target", pn) end
 end
@@ -95,7 +97,7 @@ local sendLongChatMessage = function(msg, pn)
     end
 end
 
--- Returns is_valid (bool), valid_name (string?)
+-- Returns valid_name (string?)
 local validName = function(pn)
     local name, tag
     if not pn:find('#') then
@@ -104,9 +106,9 @@ local validName = function(pn)
             name = pn
         end
     else
-        name, tag = data:match("(%S+)#(%d+)")
+        name, tag = pn:match("(%S+)#(%d+)")
     end
-    if not name or #name > 20 then return false end
-    if not tag or #tag ~= 4 then return false end
-    return true, name .. "#" .. tag
+    if not name or #name > 20 then return nil end
+    if not tag or #tag ~= 4 then return nil end
+    return name:sub(1,1):upper() .. name:sub(2):lower() .. "#" .. tag
 end

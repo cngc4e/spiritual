@@ -55,7 +55,7 @@ do
     MDHelper.MERGE_FAIL = 2
 
     MDHelper.commit = function(pn, op_id, a1, a2, a3, a4)
-        local op = operations[op_id]
+        local op = op_id and operations[op_id]
         if op then
             local op_mt = setmetatable({}, { __index = {
                 init = op.init,
