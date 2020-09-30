@@ -48,7 +48,7 @@ do
                     return
                 end
                 TsmRotation.overrideMap(code)
-                sendChatMessageStaff("%s (mode: %s) will be loaded the next round. (queued by %s)", code, mode or "player-defined", pn)
+                sendChatMessageStaff("@%s (mode: %s) will be loaded the next round. (queued by %s)", code, mode or "player-defined", pn)
             end,
         },
         tfmcmd.Main {
@@ -115,6 +115,7 @@ do
         },
         tfmcmd.Main {
             name = "remstaff",
+            aliases = {"removestaff"},
             args = {
                 tfmcmd.ArgString { },
             },
@@ -128,7 +129,7 @@ do
 
                 local status, msg = TsmModuleData.commit(pn, TsmModuleData.OP_REMOVE_STAFF, target)
                 if status == MDHelper.MERGE_OK then
-                    players[pn]:chatMsgFmt("%s will be revoked of Staff rights.", target)
+                    sendChatMessageStaff("%s will be revoked of their Staff rights. (ordered by %s)", target, pn)
                 else
                     players[pn]:chatMsg(msg)
                 end
@@ -291,7 +292,7 @@ do
             allowed = LEVEL_STAFF,
             func = function(pn, limit)
                 tfm.exec.setRoomMaxPlayers(limit)
-                players[pn]:chatMsg("Room limit set to "..limit..".")
+                sendChatMessageStaff("Room player limit set to %s by %s.", limit, pn)
             end,
         },
         tfmcmd.Main {
@@ -302,7 +303,7 @@ do
             allowed = LEVEL_STAFF,
             func = function(pn, limit)
                 tfm.exec.setGameTime(limit)
-                players[pn]:chatMsg("Time limit set to "..limit..".")
+                sendChatMessageStaff("Time limit set to %s by %s.", limit, pn)
             end,
         },
     }

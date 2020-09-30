@@ -199,7 +199,7 @@ do
     end
 
     TsmRound.isShaman = function(self, pn)
-        return self.shamans_key[pn] == true
+        return self.shamans_key and self.shamans_key[pn] == true
     end
 
     TsmRound.isCurrentTurn = function(self, pn)

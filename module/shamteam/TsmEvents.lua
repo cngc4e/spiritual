@@ -6,7 +6,7 @@ do
 
         system.loadPlayerData(pn)
 
-        player:tlChatMsg("welcome_message")
+        player:tlChatMsg("welcome_message", MODULE_VERSION)
 
         if not is_official_room then
             player:tlChatMsg("tribehouse_mode_warning", MODULE_ROOMNAME)
@@ -43,7 +43,7 @@ do
     end)
 
     local handleDeathForRotate = function(pn, win)
-        if not ThisRound.is_lobby then
+        if ThisRound:isReady() and not ThisRound.is_lobby and ThisRound.phase < PHASE_TIMESUP then
             if pL.alive:len() == 0 then
                 Events.doEvent("TimesUp", elapsed)
             elseif ThisRound:isShaman(pn) then

@@ -2,6 +2,7 @@
 --- Module
 local MODULE_ID = 3
 local MODULE_ROOMNAME = "shamteam"
+local MODULE_VERSION = "v1.0-Beta"
 
 --- Round phases
 local PHASE_START = 0

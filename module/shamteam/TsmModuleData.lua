@@ -350,6 +350,7 @@ do
             end,
             merge = function(self, db)
                 local staff = db.staff
+                local found = false
                 for i = 1, #staff do
                     if staff[i] == self.pn then
                         found = true

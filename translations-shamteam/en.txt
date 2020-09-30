@@ -47,7 +47,7 @@ A full list of staff are available via the !staff command.
 ## Chat messages
 
 welcome_message = [[
-\t<VP>Ξ Welcome to <b>Team Shaman (TSM)</b> v1.0 Alpha (Re-write)! Ξ
+\t<VP>Ξ Welcome to <b>Team Shaman (TSM)</b> %s! Ξ
 <J>TSM is a building module where dual shamans take turns to spawn objects.
 Press H for more information.
 <R>NOTE: <VP>Module is in early stages of development and may see incomplete or broken features.
