@@ -59,6 +59,7 @@ unafk_message = [[<ROSE>Welcome back! We've been expecting you.]]
 
 used_an_arrow = [[<ROSE>%s used an arrow! (%s used in total)]]
 used_a_solid_balloon = [[<ROSE>%s used a solid balloon! (%s left)]]
+used_an_undo = [[<ROSE>%s used an undo! (%s left)]]
 not_your_turn = [[<J>Ξ It's not your turn to spawn yet!]]
 warn_self_range = [[<J>Ξ Your partner needs to be within your spawning range.]]
 warn_partner_range = [[<J>Ξ You need to be within your partner's spawning range.]]

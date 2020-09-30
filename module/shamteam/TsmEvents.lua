@@ -87,9 +87,9 @@ do
         ThisRound.startsummon = true  -- workaround b/2
         if type == O_TYPE_TOTEM then  -- totems are banned; TODO: need more aggressive ban since this can be bypassed with (forced) lag
             local player = room.playerList[pn]
-            local x, y = player.x, player.y
+            local x, y, vx, vy = player.x, player.y, player.vx, player.vy
             ThisRound:setCorrectShamanMode(pn)
-            tfm.exec.movePlayer(pn, x, y, false, 0, 0, false)
+            tfm.exec.movePlayer(pn, x, y, false, vx, vy, false)
         end
     end)
 

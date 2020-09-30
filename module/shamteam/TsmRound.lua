@@ -100,6 +100,7 @@ do
         self.st_index = 1  -- current shaman's turn, index of self.shamans
         self.arrow_count = 0
         self.sballoon_count = 0
+        self.undo_count = 0
         self.spawnlist = {}
 
         for i = 1, #self.shamans do
@@ -113,8 +114,11 @@ do
             -- Separate shaman tag
             if self.separate_sham then
                 local dc = self["DC" .. i]
-                if dc and dc.X and dc.Y then
-                    tfm.exec.movePlayer(name, dc.X, dc.Y)
+                if dc then
+                    dc = dc.attrib
+                    if dc.X and dc.Y then
+                        tfm.exec.movePlayer(name, dc.X, dc.Y)
+                    end
                 end
             end
             -- Init spawnlist
@@ -263,8 +267,8 @@ do
                 for name, player in pairs(players) do
                     player:tlChatMsg("used_an_arrow", pnDisp(pn), self.arrow_count)
                 end
-                return false
             end
+            return false
         end
 
         if not self:isCurrentTurn(pn) then
@@ -326,6 +330,20 @@ do
             ret = -0.7
         end
         return ret
+    end
+
+    TsmRound.doUndo = function(self, pn)
+        if not self.mods[MOD_BUTTER_FINGERS] then return end
+        local sl = self.spawnlist[pn]
+        if sl._len > 0 and self.undo_count < 2 then
+            tfm.exec.removeObject(sl[sl._len])
+            sl[sl._len] = nil
+            sl._len = sl._len - 1
+            self.undo_count = self.undo_count + 1
+            for name, player in pairs(players) do
+                player:tlChatMsg("used_an_undo", pnDisp(pn), 2 - self.undo_count)
+            end
+        end
     end
 
     TsmRound.new = function(_, vars)

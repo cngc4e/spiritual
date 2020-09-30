@@ -35,14 +35,8 @@ keys[79] = {
 
 keys[85] = {
     func = function(pn) -- u (undo spawn)
-        if not pL.shaman[pn] or not roundv.mods:isset(MOD_BUTTER_FINGERS) then return end
-        local sl = roundv.spawnlist[pn]
-        if sl._len > 0 and roundv.undo_count < 2 then
-            tfm.exec.removeObject(sl[sl._len])
-            sl[sl._len] = nil
-            sl._len = sl._len - 1
-            roundv.undo_count = roundv.undo_count + 1
-            tfm.exec.chatMessage(string.format("<ROSE>%s used an undo! (%s left)", pDisp(pn), 2 - roundv.undo_count))
+        if ThisRound:isShaman(pn) and not ThisRound.is_lobby then
+            ThisRound:doUndo(pn)
         end
     end,
     trigger = DOWN_ONLY

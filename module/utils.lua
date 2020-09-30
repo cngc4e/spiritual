@@ -39,6 +39,7 @@ local function table_shuffle(tbl)
     return tbl
 end
 
+-- debugging
 local function dumptbl (tbl, indent, cb)
     if not indent then indent = 0 end
     if not cb then cb = print end
@@ -54,6 +55,19 @@ local function dumptbl (tbl, indent, cb)
         else
             cb(formatting .. v)
         end
+    end
+end
+
+local function dumpXMLNode(node, indent, cb)
+    if not indent then indent = 0 end
+    if not cb then cb = print end
+
+    local attrs = {}
+    for k,v in pairs(node.attrib) do attrs[#attrs+1] = k..'="'..v..'"' end
+    cb(string.rep("  ", indent)..node.name.." ["..table.concat(attrs, " ").."]")
+
+    for i = 1, node.children do
+        dumpXMLNode(node.child[i], indent+1, cb)
     end
 end
 
