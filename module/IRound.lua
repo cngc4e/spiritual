@@ -22,11 +22,17 @@ do
         self.is_mirrored = room.mirroredMap
         self.wind = 0
         self.gravity = 10
-        if mapcode < 1000 or not room.xmlMapInfo then
+
+        -- When a Vanilla map is loaded, xmlMapInfo will not change. This means that
+        -- it is either nil (is the first non-vanilla map loaded), or refers to the
+        -- xmlMapInfo of the *previous* non-vanilla map loaded. 
+        if not room.xmlMapInfo or room.xmlMapInfo.mapCode ~= mapcode then
             self.is_vanilla = true
-            self.author = "Vanilla#0020"
+            self.author = "Tigrounette#0001"
             return
         end
+
+        -- Below are stuff that can only be done with xmlMapInfo available
         self.author = room.xmlMapInfo.author
         local xmlobj = XMLParse.parse(room.xmlMapInfo.xml):traverse_first("C")
         self:parseXMLObj(xmlobj)
