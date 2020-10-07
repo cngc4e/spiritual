@@ -75,6 +75,8 @@ antilag_enabled = [[<ROSE>Hey there, you appear to be really laggy. We have enab
 
 shaman_left_lobby = [[<J><b>Uh oh.</b> It looks like the Shaman <CH>%s <J>has decided to sneak away from their duties..]]
 
+not_enough_players = [[<R>Not enough players in the room for stats to count. (%s/%s)]]
+
 ## Map info
 map_info = [[<ROSE>[Map Info]<J> @%s <N>by <VP>%s <N>- Difficulty: <J>%s (%s)]]
 hard = [[Hard]]
@@ -113,3 +115,6 @@ desc_snail_nail = [[Increases building time limit by 30 seconds. More time for o
 chosen_shaman = [[You’ve been chosen to pair up for the next round!]]
 shamans_choosing = [[Shamans are now choosing the gameplay...]]
 of_original_xp = [[<p align="center"><i><J>%s: %s %s of original exp.]]
+
+## Profile
+level = [[Level]]

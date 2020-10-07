@@ -39,6 +39,13 @@ do
         schedule_toggle_save(self)
     end
 
+    TsmPlayer.setExp = function(self, exp, add)
+        self.exp = add and (self.exp + exp) or exp
+        PDHelper.setScheduleSave(self.name, function(mpdata, exp)
+            mpdata.exp = exp
+        end, self.exp)
+    end
+
     TsmPlayer.updateCircle = function(self, target)
         self:removeCircle()
         if ThisRound:isReady() and ThisRound.mode ~= TSM_DIV then

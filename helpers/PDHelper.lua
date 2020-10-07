@@ -24,14 +24,16 @@ do
         local s = scheduledSaves[pn]
         if s then
             for i = 1, #s do
-                s[i](mpdata)
+                s[i][1](mpdata, s[i][2], s[i][3], s[i][4], s[i][5])
             end
             scheduledSaves[pn] = nil
             return true
         end
     end
 
+    -- returns db2 status
     PDHelper.onPdLoaded = function(pn, data)
+        local status = db2.INFO_OK
         local global_pd = nil
         if data == "" then
             global_pd = {modules={}}
@@ -39,6 +41,7 @@ do
             local success, ret = pcall(db2.decode, GLOBAL_PD_SCHEMA, data)
             if not success then
                 global_pd = {modules={}}
+                status = db2.info
                 print(pn .. " corrupt global PD: " .. ret)
             else
                 global_pd = ret
@@ -62,6 +65,7 @@ do
             local success, ret = pcall(db2.decode, mdSchema, encoded_module_pd)
             if not success then
                 module_pd = table_copy(defaultData)
+                status = db2.info
                 print(pn .. " corrupt module PD: " .. ret)
             else
                 module_pd = ret
@@ -94,6 +98,8 @@ do
             local encoded_global_pd = db2.encode(GLOBAL_PD_SCHEMA, global_pd)
             system.savePlayerData(pn, encoded_global_pd)
         end
+
+        return status
     end
 
     PDHelper.onLoop = function()
@@ -109,13 +115,13 @@ do
     end
         
 
-    PDHelper.setScheduleSave = function(pn, update_func)
+    PDHelper.setScheduleSave = function(pn, update_func, a1, a2, a3, a4)
         if not scheduledSaves[pn] then
             scheduledSaves[pn] = {}
         end
 
         local s = scheduledSaves[pn]
-        s[#s+1] = update_func
+        s[#s+1] = {update_func, a1, a2, a3, a4}
     end
 
     PDHelper.init = function(mod_id, schema, schema_version, default_data, update_callback, params)

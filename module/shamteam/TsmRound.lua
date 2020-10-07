@@ -97,6 +97,18 @@ do
             self.shamans, self.shamans_key = self.getShamans()
         end
 
+        self.effective = false
+        if is_official_room then
+            local player_cnt = room.uniquePlayers and room.uniquePlayers or pL.room:len()
+            if player_cnt < STAT_PLAYERS_REQUIRED then
+                for name, p in pairs(players) do
+                    p:tlChatMsg("not_enough_players", player_cnt, STAT_PLAYERS_REQUIRED)
+                end
+            else
+                self.effective = true
+            end
+        end
+
         self.st_index = 1  -- current shaman's turn, index of self.shamans
         self.arrow_count = 0
         self.sballoon_count = 0
@@ -290,7 +302,7 @@ do
                 players[pn]:tlChatMsg("warn_self_range")
                 local nextsham = self:getNextTurnShaman()
                 if players[nextsham] then
-                    players[nextsham]:tlChatMsg("warn_self_range")
+                    players[nextsham]:tlChatMsg("warn_partner_range")
                 end
                 return false
             end

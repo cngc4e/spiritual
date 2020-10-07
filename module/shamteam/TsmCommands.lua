@@ -296,6 +296,17 @@ do
             end,
         },
         tfmcmd.Main {
+            name = "pw",
+            args = {
+                tfmcmd.ArgJoinedString { },
+            },
+            allowed = LEVEL_STAFF,
+            func = function(pn, pass)
+                tfm.exec.setRoomPassword(pass or "")
+                sendChatMessageStaff("Room password set to %s by %s.", pass and "'"..pass.."'" or "(none)", pn)
+            end,
+        },
+        tfmcmd.Main {
             name = "time",
             args = {
                 tfmcmd.ArgNumber { },
