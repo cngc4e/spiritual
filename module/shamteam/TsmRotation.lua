@@ -163,8 +163,8 @@ TsmRotation.signalNgAndHandover = function()
         for i = 1, #ret.shamans do
             ret.shamans_key[ret.shamans[i]] = true
         end
-        print(string.format("Unexpected shamans caught - The expected ones are: %s & %s",
-                expect_sham1, expect_sham2))
+        print(string.format("Unexpected shamans caught - The expected ones are: %s%s",
+                expect_sham1, expect_sham2 and (" & " .. expect_sham2) or ""))
     else
         ret.shamans, ret.shamans_key = sh, shk
     end

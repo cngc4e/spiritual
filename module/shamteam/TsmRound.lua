@@ -202,12 +202,16 @@ do
         return self.phase >= PHASE_READY
     end
 
+    TsmRound.isInProgress = function(self)
+        return self.phase >= PHASE_READY and self.phase < PHASE_TIMESUP
+    end
+
     TsmRound.isShaman = function(self, pn)
         return self.shamans_key and self.shamans_key[pn] == true
     end
 
     TsmRound.isCurrentTurn = function(self, pn)
-        return self:isReady() and self.shamans[self.st_index] == pn
+        return self.phase >= PHASE_READY and self.shamans[self.st_index] == pn
     end
 
     TsmRound.getCurrentTurnShaman = function(self)

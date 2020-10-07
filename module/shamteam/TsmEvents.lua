@@ -22,7 +22,7 @@ do
             TsmWindow.open(WINDOW_LOBBY, pn)
         end
 
-        if pL.room:len() == 2 and ThisRound.lobby_ready and module_started then
+        if pL.room:len() == 2 and ThisRound.is_lobby and module_started then
             -- reload lobby
             TsmRotation.doLobby()
         end
@@ -43,7 +43,7 @@ do
     end)
 
     local handleDeathForRotate = function(pn, win)
-        if ThisRound:isReady() and not ThisRound.is_lobby and ThisRound.phase < PHASE_TIMESUP then
+        if ThisRound:isInProgress() then
             if pL.alive:len() == 0 then
                 Events.doEvent("TimesUp", elapsed)
             elseif ThisRound:isShaman(pn) then
