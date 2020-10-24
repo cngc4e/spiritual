@@ -37,7 +37,7 @@ do
     end
 
     TimedTask.remove = function(id)
-        if not id or tasks[id] then return end
+        if not id or not tasks[id] then return end
         if tasks[id][1] then
             system.removeTimer(tasks[id][1])
         end
