@@ -17,7 +17,7 @@ do
             -- Back to good ol' eventLoop
             tasks[id] = { nil, os.time() + time_ms, cb, {a1, a2, a3, a4} }
         else
-            local timer_id = system.newTimer(function(a1, a2, a3, a4)
+            local timer_id = system.newTimer(function(_, a1, a2, a3, a4)
                     tasks[id] = nil
                     cb(a1, a2, a3, a4)
                 end, time_ms, false, a1, a2, a3, a4)
